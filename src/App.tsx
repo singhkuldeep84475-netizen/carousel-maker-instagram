@@ -2,7 +2,7 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Code2, Image, Download, Archive, Loader2,
-  Sparkles, ChevronLeft, ChevronRight, FileType, Trash2, Copy, Check,
+  Sparkles, ChevronLeft, ChevronRight, FileType, Trash2,
   Upload, User
 } from 'lucide-react';
 import { exportNodeAsImage, exportAllAsZip, ExportFormat } from './utils/exportUtils';
@@ -138,16 +138,19 @@ const App: React.FC = () => {
           if (enableBranding) {
             const watermarks = slideClone.querySelectorAll('.watermark');
             watermarks.forEach(watermark => {
+              // Force parent opacity to 1 so the dark pill is highly readable
+              (watermark as HTMLElement).style.opacity = '1';
+              
               const handleText = instaHandle.trim() 
                 ? (instaHandle.startsWith('@') ? instaHandle : `@${instaHandle}`)
                 : '@yourusername';
               
               watermark.innerHTML = `
-                <div style="display: inline-flex; align-items: center; justify-content: center; gap: 10px; vertical-align: middle;">
-                  ${avatarUrl ? `<img src="${avatarUrl}" style="width: 38px; height: 38px; border-radius: 50%; object-fit: cover; border: 1.5px solid rgba(0,0,0,0.12); flex-shrink: 0;" />` : ''}
-                  <span style="font-size: 24px; font-weight: 700; color: inherit; letter-spacing: 0px; text-transform: none;">${handleText}</span>
+                <div style="display: inline-flex; align-items: center; justify-content: center; gap: 10px; padding: 10px 20px; background: rgba(0, 0, 0, 0.65); border-radius: 12px; border: 1.5px solid rgba(255, 255, 255, 0.15); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); color: #ffffff; text-align: center; vertical-align: middle; box-shadow: 0 8px 32px rgba(0,0,0,0.25);">
+                  ${avatarUrl ? `<img src="${avatarUrl}" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 1.5px solid rgba(255,255,255,0.25); flex-shrink: 0;" />` : ''}
+                  <span style="font-size: 24px; font-weight: 700; color: #ffffff; letter-spacing: 0.5px; text-transform: none; font-family: 'Inter', sans-serif;">${handleText}</span>
                   ${showVerified ? `
-                    <svg viewBox="0 0 24 24" width="24" height="24" style="flex-shrink: 0; fill: #0095f6; display: inline-block; vertical-align: middle; margin-left: 2px;">
+                    <svg viewBox="0 0 24 24" width="22" height="22" style="flex-shrink: 0; fill: #0095f6; display: inline-block; vertical-align: middle; margin-left: 2px;">
                       <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.99-3.818-3.99-.488 0-.95.1-1.37.28C14.73 2.5 13.435 1.5 12 1.5s-2.73 1-3.402 2.29c-.42-.18-.882-.28-1.37-.28C5.12 3.51 3.41 5.29 3.41 7.5c0 .495.084.965.238 1.4-1.273.65-2.148 2.02-2.148 3.6 0 1.58.875 2.95 2.148 3.6-.154.435-.238.905-.238 1.4 0 2.21 1.71 3.99 3.818 3.99.488 0 .95-.1 1.37-.28.672 1.29 1.967 2.29 3.402 2.29s2.73-1 3.402-2.29c.42.18.882.28 1.37.28 2.108 0 3.818-1.78 3.818-3.99 0-.495-.084-.965-.238-1.4 1.273-.65 2.148-2.02 2.148-3.6zm-12.5 4l-4-4 1.41-1.41L10 13.67l6.59-6.59 1.41 1.41-8 8z" />
                     </svg>
                   ` : ''}
@@ -288,40 +291,6 @@ const App: React.FC = () => {
     };
     reader.readAsDataURL(file);
   };
-
-  // Generate preview thumbnails from rendered slides using canvas
-  const [thumbnails, setThumbnails] = useState<string[]>([]);
-
-  useEffect(() => {
-    if (slideNodes.length === 0) {
-      setThumbnails([]);
-      return;
-    }
-
-    const generateThumbnails = async () => {
-      const { toPng } = await import('html-to-image');
-      const thumbs: string[] = [];
-
-      for (const node of slideNodes) {
-        try {
-          const dataUrl = await toPng(node, {
-            canvasWidth: 270,
-            canvasHeight: 337,
-            quality: 0.8,
-            pixelRatio: 1,
-            cacheBust: true,
-            style: { transform: 'none' },
-          });
-          thumbs.push(dataUrl);
-        } catch {
-          thumbs.push('');
-        }
-      }
-      setThumbnails(thumbs);
-    };
-
-    generateThumbnails();
-  }, [slideNodes]);
 
   return (
     <div className="min-h-screen">
@@ -646,7 +615,7 @@ const App: React.FC = () => {
                 </div>
 
                 <div ref={previewScrollRef} className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory">
-                  {thumbnails.map((thumb, index) => (
+                  {slideNodes.map((node, index) => (
                     <motion.div
                       key={index}
                       initial={{ opacity: 0, scale: 0.9 }}
@@ -658,20 +627,18 @@ const App: React.FC = () => {
                       <div
                         onClick={() => setSelectedSlide(index)}
                         className={cn(
-                          'slide-thumb cursor-pointer rounded-xl overflow-hidden border-2 transition-all duration-300',
+                          'slide-thumb cursor-pointer rounded-xl overflow-hidden border-2 transition-all duration-300 relative bg-black',
                           index === selectedSlide
                             ? 'border-indigo-500 scale-[1.02] shadow-lg shadow-indigo-500/25'
                             : 'border-transparent hover:border-white/10'
                         )}
-                        style={{ aspectRatio: '4/5' }}
+                        style={{ width: '216px', height: '270px' }}
                       >
-                        {thumb ? (
-                          <img src={thumb} alt={`Slide ${index + 1}`} className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full bg-white/5 flex items-center justify-center">
-                            <Loader2 className="w-6 h-6 text-white/20 animate-spin" />
-                          </div>
-                        )}
+                        <div 
+                          dangerouslySetInnerHTML={{ __html: node.outerHTML }} 
+                          className="origin-top-left scale-[0.2] pointer-events-none absolute inset-0"
+                          style={{ width: '1080px', height: '1350px' }}
+                        />
                       </div>
                       <p className="text-center text-xs text-white/40 mt-2.5 font-medium">
                         Slide {index + 1}
