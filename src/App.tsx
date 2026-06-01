@@ -98,6 +98,9 @@ const App: React.FC = () => {
     setError(null);
     setSlideNodes([]);
 
+    // Clean up previous injected styles to prevent leakage between different HTML imports
+    document.querySelectorAll('[data-injected="true"]').forEach(el => el.remove());
+
     // Use a timeout so UI updates before heavy work
     setTimeout(() => {
       try {
@@ -107,7 +110,7 @@ const App: React.FC = () => {
         // Clear previous
         container.innerHTML = '';
 
-        // Create a shadow wrapper to isolate styles
+        // Create a shadow wrapper
         const wrapper = document.createElement('div');
 
         // Parse HTML to extract styles and body
@@ -118,15 +121,17 @@ const App: React.FC = () => {
         const styles = doc.querySelectorAll('style');
         const links = doc.querySelectorAll('link[rel="stylesheet"]');
 
-        // Clone styles into wrapper
+        // Inject styles and links directly into document.head for global availability
         styles.forEach(style => {
           const cloned = style.cloneNode(true) as HTMLStyleElement;
-          wrapper.appendChild(cloned);
+          cloned.setAttribute('data-injected', 'true');
+          document.head.appendChild(cloned);
         });
 
         links.forEach(link => {
           const cloned = link.cloneNode(true) as HTMLLinkElement;
-          wrapper.appendChild(cloned);
+          cloned.setAttribute('data-injected', 'true');
+          document.head.appendChild(cloned);
         });
 
         // Get slide elements from parsed HTML
@@ -249,6 +254,8 @@ const App: React.FC = () => {
     if (renderContainerRef.current) {
       renderContainerRef.current.innerHTML = '';
     }
+    // Clean up injected styles
+    document.querySelectorAll('[data-injected="true"]').forEach(el => el.remove());
     setActiveTab('code');
   };
 
