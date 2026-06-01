@@ -2,13 +2,13 @@
 
 @theme {
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-  --font-display: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+  --font-display: 'Outfit', 'Inter', system-ui, sans-serif;
 }
 
 body {
   font-family: var(--font-sans);
-  background: #09090b;
-  color: #fafafa;
+  background: #f8fafc;
+  color: #0f172a;
   min-height: 100vh;
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
@@ -25,8 +25,8 @@ body {
 
 /* Custom scrollbar */
 ::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -34,17 +34,17 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(126, 87, 194, 0.15);
   border-radius: 99px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(126, 87, 194, 0.3);
 }
 
-/* Figma-style dotted grid background */
+/* Figma-style premium dotted purple grid background */
 .bg-grid {
-  background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1.5px, transparent 1.5px);
+  background-image: radial-gradient(rgba(126, 87, 194, 0.08) 1.5px, transparent 1.5px);
   background-size: 24px 24px;
 }
 

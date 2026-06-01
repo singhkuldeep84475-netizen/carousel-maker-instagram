@@ -62,6 +62,34 @@ const SAMPLE_HTML = `<!DOCTYPE html>
 </body>
 </html>`;
 
+const scopeCss = (cssText: string, prefix: string): string => {
+  return cssText.replace(/([^\r\n,{}]+)(?=\s*{)/g, (match) => {
+    const selector = match.trim();
+    if (
+      selector.startsWith('@') || 
+      selector.startsWith('from') || 
+      selector.startsWith('to') || 
+      /^\d+%/.test(selector)
+    ) {
+      return match;
+    }
+    return selector
+      .split(',')
+      .map(part => {
+        const trimmed = part.trim();
+        if (!trimmed) return '';
+        if (trimmed === 'body' || trimmed === 'html') {
+          return prefix;
+        }
+        if (trimmed.startsWith('body ') || trimmed.startsWith('html ')) {
+          return prefix + trimmed.slice(4);
+        }
+        return `${prefix} ${trimmed}`;
+      })
+      .join(', ');
+  });
+};
+
 const App: React.FC = () => {
   const [htmlCode, setHtmlCode] = useState('');
   const [slideNodes, setSlideNodes] = useState<HTMLElement[]>([]);
@@ -133,9 +161,8 @@ const App: React.FC = () => {
           cloned.setAttribute('data-injected', 'true');
           
           let cssText = style.innerHTML;
-          // Scopes body/html tags to avoid styles leaking into React app
-          cssText = cssText.replace(/\bbody\b/g, '.slide-body-mock');
-          cssText = cssText.replace(/\bhtml\b/g, '.slide-body-mock');
+          // Robust selector containment - prefixes all rules to prevent application visual leaks
+          cssText = scopeCss(cssText, '.slide-body-mock');
           
           cloned.innerHTML = cssText;
           document.head.appendChild(cloned);
@@ -445,29 +472,29 @@ const App: React.FC = () => {
   const thumbWidth = slideWidth * thumbScale;
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-50 flex flex-col overflow-hidden">
+    <div className="min-h-screen bg-slate-50 text-zinc-800 flex flex-col overflow-hidden">
       {/* Hidden render container */}
       <div id="render-container" ref={renderContainerRef} />
 
-      {/* Premium Minimalist Header */}
-      <header className="h-14 border-b border-white/5 flex items-center justify-between px-6 bg-zinc-950/85 backdrop-blur-md z-50">
+      {/* Premium Light Purple & White Header */}
+      <header className="h-14 border-b border-purple-100 bg-white/80 backdrop-blur-md flex items-center justify-between px-6 z-50">
         <div className="flex items-center gap-3">
-          <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center">
-            <span className="text-zinc-950 text-[10px] font-black tracking-tighter">IC</span>
+          <div className="w-6 h-6 rounded-full bg-purple-600 flex items-center justify-center shadow-md shadow-purple-500/25">
+            <span className="text-white text-[10px] font-black tracking-tighter">IC</span>
           </div>
-          <h1 className="text-xs font-semibold tracking-[0.2em] text-white uppercase font-display">
+          <h1 className="text-xs font-bold tracking-[0.2em] text-zinc-900 uppercase font-display">
             InstaCarousel Workbench
           </h1>
         </div>
         
         {slideNodes.length > 0 && (
           <div className="flex items-center gap-4 animate-fadeIn">
-            <span className="text-[10px] uppercase tracking-wider text-zinc-400 font-semibold bg-white/5 border border-white/10 px-2.5 py-1 rounded-md">
+            <span className="text-[10px] uppercase tracking-wider text-purple-600 font-bold bg-purple-50 border border-purple-100 px-2.5 py-1.5 rounded-xl shadow-xs">
               {slideNodes.length} Slides Loaded ({slideWidth}x{slideHeight}px)
             </span>
             <button
               onClick={handleClear}
-              className="text-[10px] uppercase tracking-wider text-red-400 hover:text-red-300 font-semibold border border-red-500/20 bg-red-500/5 px-2.5 py-1 rounded-md transition-colors"
+              className="text-[10px] uppercase tracking-wider text-red-500 hover:text-red-600 font-bold border border-red-100 bg-red-50/50 hover:bg-red-50 px-2.5 py-1.5 rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
             >
               Reset
             </button>
@@ -479,19 +506,19 @@ const App: React.FC = () => {
       <main className="flex-1 flex h-[calc(100vh-56px)] overflow-hidden relative">
 
         {/* Left Control Panel / Sidebar */}
-        <section className="w-80 border-r border-white/5 bg-zinc-950 flex flex-col h-full z-20 flex-shrink-0">
+        <section className="w-80 border-r border-purple-100 bg-white flex flex-col h-full z-20 flex-shrink-0 shadow-xs relative">
           
           {/* Custom Tab Selector */}
-          <div className="flex border-b border-white/5 p-1 bg-zinc-950/50">
+          <div className="flex border-b border-purple-100 p-1.5 bg-slate-50/60">
             {(['code', 'brand', 'export'] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
                 className={cn(
-                  "flex-1 py-2 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all",
+                  "flex-1 py-2 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all cursor-pointer",
                   activeTab === tab
-                    ? "bg-white/10 text-white shadow-sm"
-                    : "text-zinc-500 hover:text-zinc-300 hover:bg-white/5"
+                    ? "bg-white text-purple-700 shadow-xs border border-purple-100/50 font-extrabold"
+                    : "text-zinc-400 hover:text-zinc-600 hover:bg-white/50"
                 )}
               >
                 {tab}
@@ -506,11 +533,11 @@ const App: React.FC = () => {
             {activeTab === 'code' && (
               <div className="space-y-5 h-full flex flex-col">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold">HTML Core Source</span>
+                  <span className="text-[10px] uppercase tracking-widest text-zinc-400 font-extrabold">HTML Core Source</span>
                   <div className="flex items-center gap-1.5">
                     <button
                       onClick={() => fileInputRef.current?.click()}
-                      className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/5 border border-white/5 transition-all"
+                      className="p-1.5 rounded-lg text-zinc-500 hover:text-purple-600 hover:bg-purple-50 border border-zinc-200 hover:border-purple-200 transition-all cursor-pointer"
                       title="Upload HTML File"
                     >
                       <Upload className="w-3.5 h-3.5" />
@@ -524,7 +551,7 @@ const App: React.FC = () => {
                     />
                     <button
                       onClick={loadSample}
-                      className="text-[9px] uppercase tracking-wider px-2 py-1.5 rounded-lg text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/5 transition-all font-semibold"
+                      className="text-[9px] uppercase tracking-wider px-2.5 py-1.5 rounded-lg text-zinc-600 bg-zinc-50 hover:bg-zinc-100 border border-zinc-200 hover:border-zinc-300 transition-all font-bold cursor-pointer"
                     >
                       Sample
                     </button>
@@ -532,7 +559,7 @@ const App: React.FC = () => {
                 </div>
 
                 {/* Code Textarea with Drag & Drop */}
-                <div className="relative flex-1 min-h-[280px] border border-white/5 rounded-xl overflow-hidden bg-black/40">
+                <div className="relative flex-1 min-h-[280px] border border-zinc-200 focus-within:border-purple-300 rounded-xl overflow-hidden bg-slate-50/50 focus-within:bg-white shadow-inner transition-all">
                   <textarea
                     value={htmlCode}
                     onChange={(e) => setHtmlCode(e.target.value)}
@@ -541,15 +568,15 @@ const App: React.FC = () => {
                     onDrop={handleDrop}
                     placeholder={`Paste code here or drag & drop HTML file...\n\nUses class="slide" (1080×1350px or 360x450px).\n\nWatermarks, handles & avatar logos are replaced dynamically!`}
                     className={cn(
-                      "w-full h-full bg-transparent text-[11px] text-zinc-400 placeholder:text-zinc-700 p-4 focus:outline-none transition-all duration-200 resize-none font-mono leading-relaxed",
-                      isDragging && "bg-white/[0.02]"
+                      "w-full h-full bg-transparent text-[11.5px] text-zinc-800 placeholder:text-zinc-400 p-4 focus:outline-none transition-all duration-200 resize-none font-mono leading-relaxed",
+                      isDragging && "bg-purple-50/20"
                     )}
                     spellCheck={false}
                   />
                   {isDragging && (
-                    <div className="absolute inset-0 bg-zinc-950/90 backdrop-blur-xs flex flex-col items-center justify-center pointer-events-none border border-dashed border-white/20 rounded-xl">
-                      <Upload className="w-5 h-5 text-white mb-1.5 animate-bounce" />
-                      <p className="text-[10px] text-white uppercase tracking-widest font-semibold">Drop to Import HTML</p>
+                    <div className="absolute inset-0 bg-white/95 backdrop-blur-xs flex flex-col items-center justify-center pointer-events-none border-2 border-dashed border-purple-300 rounded-xl">
+                      <Upload className="w-5 h-5 text-purple-600 mb-1.5 animate-bounce" />
+                      <p className="text-[10px] text-purple-600 uppercase tracking-widest font-extrabold">Drop to Import HTML</p>
                     </div>
                   )}
                 </div>
@@ -557,7 +584,7 @@ const App: React.FC = () => {
                 <button
                   onClick={() => parseAndRender()}
                   disabled={!htmlCode.trim() || isProcessing}
-                  className="w-full bg-white text-zinc-950 hover:bg-zinc-200 disabled:bg-zinc-900 disabled:text-zinc-600 disabled:border-zinc-800 border border-white/10 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2 mt-auto"
+                  className="w-full bg-purple-600 text-white hover:bg-purple-700 disabled:bg-zinc-100 disabled:text-zinc-400 disabled:border-zinc-200 border border-purple-700/10 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2 mt-auto shadow-md shadow-purple-500/10 hover:shadow-purple-500/20 cursor-pointer"
                 >
                   {isProcessing ? (
                     <>
@@ -577,9 +604,9 @@ const App: React.FC = () => {
             {/* BRANDING TAB */}
             {activeTab === 'brand' && (
               <div className="space-y-6">
-                <div className="flex items-center justify-between pb-3 border-b border-white/5">
+                <div className="flex items-center justify-between pb-3 border-b border-purple-100">
                   <div>
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-white">Dynamic Brand Override</h3>
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-800">Dynamic Brand Override</h3>
                     <p className="text-[10px] text-zinc-500 mt-0.5">Inject handles dynamically inside slides.</p>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
@@ -589,15 +616,15 @@ const App: React.FC = () => {
                       onChange={(e) => setEnableBranding(e.target.checked)} 
                       className="sr-only peer" 
                     />
-                    <div className="w-8 h-4.5 bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-white"></div>
+                    <div className="w-8 h-4.5 bg-zinc-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-purple-600"></div>
                   </label>
                 </div>
 
                 {!enableBranding ? (
                   <div className="flex flex-col items-center justify-center py-16 text-center">
-                    <Settings className="w-8 h-8 text-zinc-700 mb-3" />
+                    <Settings className="w-8 h-8 text-zinc-300 mb-3" />
                     <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider mb-1">Branding is Disabled</p>
-                    <p className="text-[9px] text-zinc-600 max-w-[200px]">
+                    <p className="text-[9px] text-zinc-500 max-w-[200px]">
                       Enable custom branding to auto-replace the logo/avatar, verified badge, and handle name.
                     </p>
                   </div>
@@ -606,17 +633,17 @@ const App: React.FC = () => {
                     
                     {/* Avatar Upload */}
                     <div className="space-y-2">
-                      <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Channel Logo</label>
-                      <div className="flex items-center gap-3 p-3 bg-white/[0.02] border border-white/5 rounded-xl">
-                        <div className="relative w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden flex-shrink-0">
+                      <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Channel Logo</label>
+                      <div className="flex items-center gap-3 p-3 bg-slate-50/50 border border-zinc-200 rounded-xl">
+                        <div className="relative w-12 h-12 rounded-full bg-white border border-zinc-200 flex items-center justify-center overflow-hidden flex-shrink-0">
                           {avatarUrl ? (
                             <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
                           ) : (
-                            <User className="w-4 h-4 text-zinc-500" />
+                            <User className="w-4 h-4 text-zinc-400" />
                           )}
                         </div>
                         <div className="flex-1 space-y-1">
-                          <label className="inline-flex items-center justify-center px-3 py-1.5 border border-white/10 rounded-lg text-[10px] font-bold text-white/70 hover:bg-white/5 cursor-pointer transition-all w-full text-center uppercase tracking-wider">
+                          <label className="inline-flex items-center justify-center px-3 py-1.5 border border-zinc-200 rounded-lg text-[10px] font-bold text-zinc-600 hover:bg-zinc-50 hover:text-purple-600 border-zinc-200 cursor-pointer transition-all w-full text-center uppercase tracking-wider">
                             Upload Logo
                             <input 
                               type="file" 
@@ -628,7 +655,7 @@ const App: React.FC = () => {
                           {avatarUrl && (
                             <button 
                               onClick={() => setAvatarUrl(null)}
-                              className="block text-[8px] text-red-400/80 hover:text-red-400 text-center w-full uppercase tracking-wider font-bold transition-colors"
+                              className="block text-[8px] text-red-500 hover:text-red-600 text-center w-full uppercase tracking-wider font-bold transition-colors cursor-pointer"
                             >
                               Remove
                             </button>
@@ -639,35 +666,35 @@ const App: React.FC = () => {
 
                     {/* Display Name */}
                     <div className="space-y-2">
-                      <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Display Name</label>
+                      <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Display Name</label>
                       <input
                         type="text"
                         value={displayName}
                         onChange={(e) => setDisplayName(e.target.value)}
                         placeholder="Financial Singh"
-                        className="w-full bg-black/40 border border-white/5 focus:border-white/20 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none placeholder:text-zinc-700 transition-colors"
+                        className="w-full bg-zinc-50/50 border border-zinc-200 focus:border-purple-300 focus:bg-white rounded-xl px-4 py-2.5 text-xs text-zinc-800 focus:outline-none placeholder:text-zinc-400 transition-colors"
                       />
                     </div>
 
                     {/* Instagram Handle */}
                     <div className="space-y-2">
-                      <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Handle Name</label>
+                      <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Handle Name</label>
                       <input
                         type="text"
                         value={instaHandle}
                         onChange={(e) => setInstaHandle(e.target.value)}
                         placeholder="@yourusername"
-                        className="w-full bg-black/40 border border-white/5 focus:border-white/20 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none placeholder:text-zinc-700 transition-colors"
+                        className="w-full bg-zinc-50/50 border border-zinc-200 focus:border-purple-300 focus:bg-white rounded-xl px-4 py-2.5 text-xs text-zinc-800 focus:outline-none placeholder:text-zinc-400 transition-colors"
                       />
                     </div>
 
                     {/* Verified Badge Checkbox */}
-                    <div className="flex items-center justify-between p-3.5 bg-white/[0.02] border border-white/5 rounded-xl">
+                    <div className="flex items-center justify-between p-3.5 bg-slate-50/50 border border-zinc-200 rounded-xl">
                       <div className="flex items-center gap-2">
                         <svg viewBox="0 0 24 24" width="16" height="16" style={{ fill: '#0095f6' }}>
                           <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.99-3.818-3.99-.488 0-.95.1-1.37.28C14.73 2.5 13.435 1.5 12 1.5s-2.73 1-3.402 2.29c-.42-.18-.882-.28-1.37-.28C5.12 3.51 3.41 5.29 3.41 7.5c0 .495.084.965.238 1.4-1.273.65-2.148 2.02-2.148 3.6 0 1.58.875 2.95 2.148 3.6-.154.435-.238.905-.238 1.4 0 2.21 1.71 3.99 3.818 3.99.488 0 .95-.1 1.37-.28.672 1.29 1.967 2.29 3.402 2.29s2.73-1 3.402-2.29c.42.18.882.28 1.37.28 2.108 0 3.818-1.78 3.818-3.99 0-.495-.084-.965-.238-1.4 1.273-.65 2.148-2.02 2.148-3.6zm-12.5 4l-4-4 1.41-1.41L10 13.67l6.59-6.59 1.41 1.41-8 8z" />
                         </svg>
-                        <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Verified Badge</span>
+                        <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Verified Badge</span>
                       </div>
                       <label className="relative inline-flex items-center cursor-pointer">
                         <input 
@@ -676,22 +703,22 @@ const App: React.FC = () => {
                           onChange={(e) => setShowVerified(e.target.checked)} 
                           className="sr-only peer" 
                         />
-                        <div className="w-8 h-4 bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-blue-500"></div>
+                        <div className="w-8 h-4.5 bg-zinc-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-blue-500"></div>
                       </label>
                     </div>
 
                     {/* Live Watermark Preview Inside Sidebar */}
-                    <div className="p-3 border border-white/5 bg-black/40 rounded-xl space-y-2">
-                      <label className="block text-[8px] font-bold text-zinc-600 uppercase tracking-widest">Live Watermark Preview</label>
-                      <div className="flex items-center justify-center p-2 bg-zinc-950 border border-white/5 rounded-lg text-white/50 text-xs">
+                    <div className="p-3.5 border border-purple-100 bg-purple-50/30 rounded-xl space-y-2">
+                      <label className="block text-[8px] font-bold text-zinc-400 uppercase tracking-widest">Live Watermark Preview</label>
+                      <div className="flex items-center justify-center p-2.5 bg-white border border-purple-100 rounded-lg text-zinc-500 text-xs shadow-xs">
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                           {avatarUrl ? (
                             <img src={avatarUrl} style={{ width: '18px', height: '18px', borderRadius: '50%', objectFit: 'cover' }} alt="" />
                           ) : (
-                            <div className="w-[18px] h-[18px] rounded-full bg-white/10 flex items-center justify-center"><User className="w-2.5 h-2.5 text-white/30" /></div>
+                            <div className="w-[18px] h-[18px] rounded-full bg-slate-100 flex items-center justify-center"><User className="w-2.5 h-2.5 text-zinc-400" /></div>
                           )}
-                          <span style={{ fontWeight: 700, fontSize: '11px', color: '#fff' }}>
-                            {instaHandle.trim() ? (instaHandle.startsWith('@') ? instaHandle : `@${instaHandle}`) : '@yourusername'}
+                          <span style={{ fontWeight: 700, fontSize: '11px', color: '#131722' }}>
+                            {displayName.trim() ? displayName.trim() : (instaHandle.trim() ? (instaHandle.startsWith('@') ? instaHandle : `@${instaHandle}`) : 'yourname')}
                           </span>
                           {showVerified && (
                             <svg viewBox="0 0 24 24" width="12" height="12" style={{ fill: '#0095f6' }}>
@@ -713,9 +740,9 @@ const App: React.FC = () => {
                 
                 {slideNodes.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-16 text-center">
-                    <FolderDown className="w-8 h-8 text-zinc-700 mb-3" />
+                    <FolderDown className="w-8 h-8 text-zinc-300 mb-3" />
                     <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider mb-1">No Slides Loaded</p>
-                    <p className="text-[9px] text-zinc-600 max-w-[200px]">
+                    <p className="text-[9px] text-zinc-500 max-w-[200px]">
                       Generate your slides first in the "Code" tab to configure export properties.
                     </p>
                   </div>
@@ -724,22 +751,22 @@ const App: React.FC = () => {
                     
                     {/* Format Toggle */}
                     <div className="space-y-2">
-                      <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Image Format</label>
-                      <div className="flex bg-black/40 border border-white/5 rounded-xl p-1 justify-between items-center">
+                      <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Image Format</label>
+                      <div className="flex bg-zinc-50/50 border border-zinc-200 rounded-xl p-1 justify-between items-center">
                         <span className="text-xs text-zinc-400 px-3">Export File Format</span>
                         <div className="flex bg-white/5 rounded-lg p-0.5">
                           <button
                             onClick={() => setExportFormat('png')}
                             className={cn(
-                              'px-3 py-1.5 text-[10px] font-bold rounded-md transition-all uppercase tracking-wider',
-                              exportFormat === 'png' ? 'bg-white/10 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'
+                              'px-3 py-1.5 text-[10px] font-bold rounded-md transition-all uppercase tracking-wider cursor-pointer',
+                              exportFormat === 'png' ? 'bg-white border border-zinc-200/80 text-purple-700 shadow-xs' : 'text-zinc-400 hover:text-zinc-600'
                             )}
                           >PNG</button>
                           <button
                             onClick={() => setExportFormat('jpg')}
                             className={cn(
-                              'px-3 py-1.5 text-[10px] font-bold rounded-md transition-all uppercase tracking-wider',
-                              exportFormat === 'jpg' ? 'bg-white/10 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'
+                              'px-3 py-1.5 text-[10px] font-bold rounded-md transition-all uppercase tracking-wider cursor-pointer',
+                              exportFormat === 'jpg' ? 'bg-white border border-zinc-200/80 text-purple-700 shadow-xs' : 'text-zinc-400 hover:text-zinc-600'
                             )}
                           >JPG</button>
                         </div>
@@ -748,15 +775,15 @@ const App: React.FC = () => {
 
                     {/* Single Slide Export List */}
                     <div className="space-y-2">
-                      <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Export Individual Slides</label>
-                      <div className="max-h-[220px] overflow-y-auto border border-white/5 bg-black/40 rounded-xl divide-y divide-white/5 scrollbar-hide">
+                      <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Export Individual Slides</label>
+                      <div className="max-h-[220px] overflow-y-auto border border-zinc-200 bg-slate-50/50 rounded-xl divide-y divide-zinc-100 scrollbar-hide">
                         {slideNodes.map((_, index) => (
-                          <div key={index} className="flex items-center justify-between p-3.5 hover:bg-white/[0.02] transition-colors">
-                            <span className="text-[11px] font-semibold text-zinc-300">Slide {String(index + 1).padStart(2, '0')}</span>
+                          <div key={index} className="flex items-center justify-between p-3.5 hover:bg-purple-50/20 transition-colors">
+                            <span className="text-[11px] font-semibold text-zinc-600">Slide {String(index + 1).padStart(2, '0')}</span>
                             <button
                               onClick={() => handleExportSingle(index)}
                               disabled={isExporting || isExportingAll}
-                              className="text-[10px] px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 hover:text-white text-zinc-300 font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all disabled:opacity-40"
+                              className="text-[10px] px-3 py-1.5 rounded-lg border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700 hover:text-purple-600 font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all disabled:opacity-40 cursor-pointer"
                             >
                               <Download className="w-3 h-3" /> Save
                             </button>
@@ -769,7 +796,7 @@ const App: React.FC = () => {
                     <button
                       onClick={handleExportAll}
                       disabled={isExporting || isExportingAll}
-                      className="w-full bg-white text-zinc-950 hover:bg-zinc-200 disabled:bg-zinc-900 disabled:text-zinc-600 disabled:border-zinc-800 border border-white/10 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2 mt-4 shadow-xl shadow-white/5"
+                      className="w-full bg-purple-600 text-white hover:bg-purple-700 disabled:bg-zinc-100 disabled:text-zinc-400 disabled:border-zinc-200 border border-purple-700/10 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2 mt-4 shadow-md shadow-purple-500/10 hover:shadow-purple-500/20 cursor-pointer"
                     >
                       {isExportingAll ? (
                         <>
@@ -792,26 +819,26 @@ const App: React.FC = () => {
           </div>
 
           {/* Unified Sidebar Footer Status */}
-          <div className="p-4 border-t border-white/5 text-[9px] uppercase tracking-widest text-zinc-600 text-center font-bold">
+          <div className="p-4 border-t border-purple-100 text-[9px] uppercase tracking-widest text-zinc-400 text-center font-bold">
             Status: Fully Live & Connected
           </div>
 
         </section>
 
         {/* Right Workspace Canvas */}
-        <section className="flex-1 bg-grid bg-zinc-900/10 flex flex-col items-center justify-center p-8 overflow-hidden relative">
+        <section className="flex-1 bg-grid bg-slate-50 flex flex-col items-center justify-center p-8 overflow-hidden relative">
 
           {/* Empty State when no slides loaded */}
           {slideNodes.length === 0 && !isProcessing && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="flex flex-col items-center justify-center max-w-sm text-center bg-zinc-950/80 border border-white/5 rounded-2xl p-8 backdrop-blur-md shadow-2xl z-10"
+              className="flex flex-col items-center justify-center max-w-sm text-center bg-white border border-purple-100 rounded-2xl p-8 shadow-xl shadow-purple-600/5 z-10 animate-fadeIn"
             >
-              <div className="w-12 h-12 rounded-full border border-white/10 flex items-center justify-center mb-4 text-zinc-400 bg-white/5">
+              <div className="w-12 h-12 rounded-full border border-purple-100 flex items-center justify-center mb-4 text-purple-500 bg-purple-50 shadow-inner">
                 <Sparkles className="w-5 h-5 animate-pulse" />
               </div>
-              <h2 className="text-sm font-semibold text-white uppercase tracking-[0.2em] font-display mb-1">
+              <h2 className="text-sm font-bold text-zinc-800 uppercase tracking-[0.2em] font-display mb-1">
                 InstaCarousel Canvas
               </h2>
               <p className="text-[11px] text-zinc-500 leading-relaxed mb-5">
@@ -820,13 +847,13 @@ const App: React.FC = () => {
               <div className="flex gap-3 justify-center w-full">
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="flex-1 text-[10px] uppercase tracking-widest font-bold py-2 rounded-xl text-white border border-white/10 hover:bg-white/5 transition-all"
+                  className="flex-1 text-[10px] uppercase tracking-widest font-bold py-2.5 rounded-xl text-zinc-700 border border-zinc-200 hover:bg-zinc-50 transition-all cursor-pointer"
                 >
                   Browse File
                 </button>
                 <button
                   onClick={loadSample}
-                  className="flex-1 text-[10px] uppercase tracking-widest font-bold py-2 rounded-xl bg-white text-zinc-950 hover:bg-zinc-200 transition-all"
+                  className="flex-1 text-[10px] uppercase tracking-widest font-bold py-2.5 rounded-xl bg-purple-600 text-white hover:bg-purple-700 transition-all shadow-md shadow-purple-500/10 cursor-pointer"
                 >
                   Load Sample
                 </button>
@@ -837,8 +864,8 @@ const App: React.FC = () => {
           {/* Rendering Skeleton during parse */}
           {isProcessing && (
             <div className="flex flex-col items-center justify-center z-10">
-              <Loader2 className="w-8 h-8 text-zinc-400 animate-spin mb-4" />
-              <p className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold">Assembling Slide Matrix...</p>
+              <Loader2 className="w-8 h-8 text-purple-600 animate-spin mb-4" />
+              <p className="text-[10px] uppercase tracking-widest text-zinc-400 font-extrabold">Assembling Slide Matrix...</p>
             </div>
           )}
 
@@ -849,10 +876,10 @@ const App: React.FC = () => {
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
-                className="absolute top-6 left-6 right-6 z-40 flex items-center gap-3 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-semibold backdrop-blur-md"
+                className="absolute top-6 left-6 right-6 z-40 flex items-center gap-3 px-4 py-3 rounded-xl bg-red-50 border border-red-100 text-red-500 text-xs font-semibold backdrop-blur-md shadow-lg shadow-red-500/5 animate-fadeIn"
               >
                 <span>{error}</span>
-                <button onClick={() => setError(null)} className="ml-auto text-red-400/60 hover:text-red-400 transition-colors">✕</button>
+                <button onClick={() => setError(null)} className="ml-auto text-red-500/60 hover:text-red-500 transition-colors">✕</button>
               </motion.div>
             )}
           </AnimatePresence>
@@ -868,14 +895,14 @@ const App: React.FC = () => {
                 <button
                   onClick={() => setSelectedSlide(prev => Math.max(0, prev - 1))}
                   disabled={selectedSlide === 0}
-                  className="absolute left-10 p-3 rounded-full bg-zinc-950/80 border border-white/5 text-zinc-400 hover:text-white hover:bg-zinc-900 hover:scale-105 disabled:opacity-0 disabled:pointer-events-none transition-all shadow-xl z-30"
+                  className="absolute left-10 p-3 rounded-full bg-white border border-purple-100 text-zinc-500 hover:text-purple-600 hover:bg-purple-50 hover:scale-105 disabled:opacity-0 disabled:pointer-events-none transition-all shadow-md shadow-purple-600/5 z-30 cursor-pointer"
                 >
                   <ChevronLeft className="w-5 h-5" />
                 </button>
 
                 {/* Main Dynamic Instagram Canvas Container */}
                 <div 
-                  className="shadow-[0_30px_100px_-20px_rgba(0,0,0,0.85)] border border-white/10 rounded-2xl overflow-hidden relative bg-black transition-all duration-300 transform"
+                  className="shadow-[0_40px_100px_-20px_rgba(126,87,194,0.15)] border border-purple-100/80 rounded-2xl overflow-hidden relative bg-white transition-all duration-300 transform"
                   style={{ width: `${centerpieceWidth}px`, height: `${centerpieceHeight}px` }}
                 >
                   {/* CSS Hard-Scaled Dynamic Node Rendering */}
@@ -894,7 +921,7 @@ const App: React.FC = () => {
                 <button
                   onClick={() => setSelectedSlide(prev => Math.min(slideNodes.length - 1, prev + 1))}
                   disabled={selectedSlide === slideNodes.length - 1}
-                  className="absolute right-10 p-3 rounded-full bg-zinc-950/80 border border-white/5 text-zinc-400 hover:text-white hover:bg-zinc-900 hover:scale-105 disabled:opacity-0 disabled:pointer-events-none transition-all shadow-xl z-30"
+                  className="absolute right-10 p-3 rounded-full bg-white border border-purple-100 text-zinc-500 hover:text-purple-600 hover:bg-purple-50 hover:scale-105 disabled:opacity-0 disabled:pointer-events-none transition-all shadow-md shadow-purple-600/5 z-30 cursor-pointer"
                 >
                   <ChevronRight className="w-5 h-5" />
                 </button>
@@ -902,27 +929,27 @@ const App: React.FC = () => {
               </div>
 
               {/* Sleek Floating Centerpiece Control Toolbar */}
-              <div className="bg-zinc-950/90 border border-white/5 backdrop-blur-xl rounded-2xl py-3 px-5 shadow-[0_20px_50px_rgba(0,0,0,0.6)] flex items-center justify-between gap-6 w-fit min-w-[460px] z-30 mb-8 mt-2 animate-fadeIn">
+              <div className="bg-white/95 border border-purple-100 backdrop-blur-xl rounded-2xl py-3 px-5 shadow-[0_20px_50px_rgba(126,87,194,0.08)] flex items-center justify-between gap-6 w-fit min-w-[460px] z-30 mb-8 mt-2 animate-fadeIn">
                 <div className="flex items-center gap-3">
-                  <span className="text-[10px] font-black tracking-widest text-zinc-400 bg-white/5 px-2.5 py-1.5 rounded-lg border border-white/10">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-purple-600 bg-purple-50 px-2.5 py-1.5 rounded-lg border border-purple-100/50">
                     SLIDE {String(selectedSlide + 1).padStart(2, '0')} / {String(slideNodes.length).padStart(2, '0')}
                   </span>
                 </div>
 
-                <div className="h-4 w-px bg-white/10" />
+                <div className="h-4 w-px bg-purple-100" />
 
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => handleExportSingle(selectedSlide)}
                     disabled={isExporting || isExportingAll}
-                    className="text-[10px] font-bold uppercase tracking-wider py-1.5 px-3.5 rounded-xl bg-white text-zinc-950 hover:bg-zinc-200 transition-all flex items-center gap-1.5 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-40 cursor-pointer"
+                    className="text-[10px] font-bold uppercase tracking-wider py-1.5 px-3.5 rounded-xl bg-purple-600 text-white hover:bg-purple-700 hover:shadow-md hover:shadow-purple-500/15 transition-all flex items-center gap-1.5 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-40 cursor-pointer"
                   >
                     <Download className="w-3 h-3" /> Export Current
                   </button>
                   <button
                     onClick={handleExportAll}
                     disabled={isExporting || isExportingAll}
-                    className="text-[10px] font-bold uppercase tracking-wider py-1.5 px-3.5 rounded-xl border border-white/10 bg-white/5 text-white hover:bg-white/10 transition-all flex items-center gap-1.5 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-40 cursor-pointer"
+                    className="text-[10px] font-bold uppercase tracking-wider py-1.5 px-3.5 rounded-xl border border-purple-100 bg-purple-50 text-purple-700 hover:bg-purple-100/80 transition-all flex items-center gap-1.5 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-40 cursor-pointer"
                   >
                     {isExportingAll ? (
                       <>
@@ -939,7 +966,7 @@ const App: React.FC = () => {
               </div>
 
               {/* Floating Slide Thumbnail Strip Carousel */}
-              <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-zinc-950/80 border border-white/5 backdrop-blur-xl rounded-2xl py-2 px-3 shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex items-center gap-2 max-w-[80%] overflow-x-auto scrollbar-hide z-30">
+              <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-white/90 border border-purple-100/80 backdrop-blur-xl rounded-2xl py-2 px-3 shadow-[0_20px_50px_rgba(126,87,194,0.08)] flex items-center gap-2 max-w-[80%] overflow-x-auto scrollbar-hide z-30">
                 {slideNodes.map((node, index) => (
                   <div
                     key={index}
@@ -947,7 +974,7 @@ const App: React.FC = () => {
                     className={cn(
                       "rounded-lg border-2 overflow-hidden flex-shrink-0 cursor-pointer transition-all duration-300 relative bg-black",
                       index === selectedSlide
-                        ? "border-white scale-[1.05]"
+                        ? "border-purple-500 scale-[1.05] shadow-md shadow-purple-500/25"
                         : "border-transparent opacity-40 hover:opacity-80"
                     )}
                     style={{ width: `${thumbWidth}px`, height: `${thumbHeight}px` }}
