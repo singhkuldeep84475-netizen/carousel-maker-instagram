@@ -64,3 +64,11 @@ body {
 .slide-thumb:hover {
   transform: translateY(-2px);
 }
+
+/* Enforce layout containment for the scoped body mockup wrapper */
+.slide-body-mock {
+  display: block !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+}
