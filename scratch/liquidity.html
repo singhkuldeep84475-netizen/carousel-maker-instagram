@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Financial Singh - Liquidity Carousel</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+
+<style>
+    body {
+        margin: 0;
+        background-color: #000000; /* Dark background to contrast the white slides */
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 60px;
+        padding: 60px 20px;
+        font-family: 'Inter', sans-serif;
+    }
+
+    /* Standard Instagram Portrait Carousel Dimension */
+    .slide {
+        width: 1080px;
+        height: 1350px;
+        background-color: #FFFFFF;
+        position: relative;
+        box-sizing: border-box;
+        overflow: hidden;
+        border-radius: 8px; /* Slight rounding for preview aesthetics */
+        box-shadow: 0 20px 40px rgba(255,255,255,0.05);
+        flex-shrink: 0;
+    }
+
+    /* Watermark */
+    .watermark {
+        position: absolute;
+        bottom: 40px;
+        width: 100%;
+        text-align: center;
+        font-size: 24px;
+        font-weight: 700;
+        color: #787B86;
+        letter-spacing: 2px;
+        opacity: 0.6;
+    }
+
+    /* Typography Defaults */
+    .content {
+        padding: 120px 100px;
+        position: relative;
+        z-index: 10;
+        text-align: center;
+    }
+
+    h1 {
+        font-size: 90px;
+        font-weight: 900;
+        color: #131722;
+        margin: 0 0 30px 0;
+        line-height: 1.1;
+        text-transform: uppercase;
+        letter-spacing: -2px;
+    }
+
+    h1 span {
+        color: #7E57C2; /* Purple Highlight */
+    }
+
+    p {
+        font-size: 38px;
+        font-weight: 400;
+        color: #787B86;
+        margin: 0;
+        line-height: 1.4;
+    }
+
+    p strong {
+        color: #131722;
+        font-weight: 700;
+    }
+
+    /* Chart Area Base */
+    .chart-area {
+        position: absolute;
+        bottom: 200px;
+        left: 100px;
+        width: 880px;
+        height: 600px;
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        gap: 40px; /* Controlled gap instead of space-evenly */
+        border-bottom: 2px dashed #e0e0e0;
+        border-left: 2px dashed #e0e0e0;
+        padding-bottom: 20px;
+        padding-left: 20px;
+    }
+
+    /* Candlestick Engine */
+    .candle-wrapper {
+        position: relative;
+        width: 40px;
+        height: 100%;
+    }
+    
+    .wick {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 4px;
+        background-color: #434651;
+        border-radius: 2px;
+    }
+
+    .body {
+        position: absolute;
+        left: 0;
+        width: 100%;
+        border-radius: 4px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .bull { background-color: #7E57C2; } /* Purple Bull Candle */
+    .bear { background-color: #434651; } /* Dark Grey Bear Candle */
+
+    /* Chart Lines and Labels */
+    .trendline {
+        position: absolute;
+        width: 100%;
+        height: 3px;
+        background-color: #131722;
+        z-index: 5;
+    }
+
+    .trendline.dashed {
+        background-color: transparent;
+        border-bottom: 4px dashed #131722;
+    }
+
+    .trendline-label {
+        position: absolute;
+        font-size: 26px;
+        font-weight: 700;
+        color: #131722;
+        background: #FFFFFF;
+        padding: 5px 10px;
+        border-radius: 5px;
+    }
+
+    .highlight-badge {
+        position: absolute;
+        font-size: 28px;
+        font-weight: 900;
+        color: #FFFFFF;
+        background-color: #7E57C2;
+        padding: 10px 20px;
+        border-radius: 8px;
+        text-transform: uppercase;
+        box-shadow: 0 10px 20px rgba(126, 87, 194, 0.3);
+        z-index: 20;
+    }
+
+    .arrow-down {
+        width: 0; 
+        height: 0; 
+        border-left: 15px solid transparent;
+        border-right: 15px solid transparent;
+        border-top: 25px solid #7E57C2;
+        position: absolute;
+    }
+
+    /* Slide 1 Specifics */
+    .slide-1-bg {
+        position: absolute;
+        top: 0; left: 0; width: 100%; height: 100%;
+        opacity: 0.05;
+        background: repeating-linear-gradient(
+            0deg,
+            transparent,
+            transparent 40px,
+            #131722 40px,
+            #131722 42px
+        );
+        z-index: 1;
+    }
+
+    .slide-1-center {
+        position: absolute;
+        top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+        width: 90%;
+        z-index: 10;
+    }
+
+    .slide-1-center h1 {
+        font-size: 130px;
+        margin-bottom: 40px;
+    }
+    
+    .slide-1-center p {
+        font-size: 45px;
+        color: #131722;
+        font-weight: 700;
+    }
+
+    /* CTA Slide Specifics */
+    .cta-container {
+        position: absolute;
+        top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+        width: 90%;
+    }
+
+    .cta-container h2 {
+        font-size: 80px;
+        color: #131722;
+        font-weight: 900;
+        margin: 0 0 40px 0;
+        text-transform: uppercase;
+    }
+
+    .cta-button {
+        display: inline-block;
+        background-color: #7E57C2;
+        color: #FFFFFF;
+        font-size: 50px;
+        font-weight: 900;
+        padding: 30px 80px;
+        border-radius: 20px;
+        text-transform: uppercase;
+        margin-bottom: 50px;
+        box-shadow: 0 20px 40px rgba(126, 87, 194, 0.4);
+    }
+</style>
+</head>
+<body>
+
+    <!-- SLIDE 1: HOOK -->
+    <div class="slide">
+        <div class="slide-1-bg"></div>
+        <div class="slide-1-center">
+            <h1>HOW TO TRADE<br><span>LIQUIDITY</span></h1>
+            <p>STOP TRADING RETAIL PATTERNS.</p>
+        </div>
+        <div class="watermark">@kuldeepsingh0234</div>
+    </div>
+
+    <!-- SLIDE 2: WHAT IS IT? -->
+    <div class="slide">
+        <div class="content">
+            <h1>MARKET NEEDS<br><span>FUEL</span></h1>
+            <p><strong>Liquidity = Stop Losses.</strong><br>Institutions need YOUR stops to fill their massive block orders.</p>
+        </div>
+
+        <div class="chart-area" style="border:none;">
+            <!-- Buy Side Liquidity Line -->
+            <div class="trendline dashed" style="top: 150px;"></div>
+            <div class="trendline-label" style="top: 100px; left: 50px; color: #7E57C2;">BUY STOPS (BSL) $$$</div>
+            
+            <!-- Simple market flow -->
+            <div class="candle-wrapper"><div class="wick" style="bottom: 120px; height: 180px;"></div><div class="body bull" style="bottom: 150px; height: 120px;"></div></div>
+            <div class="candle-wrapper"><div class="wick" style="bottom: 250px; height: 150px;"></div><div class="body bull" style="bottom: 270px; height: 100px;"></div></div>
+            <div class="candle-wrapper"><div class="wick" style="bottom: 340px; height: 120px;"></div><div class="body bear" style="bottom: 350px; height: 80px;"></div></div>
+            <div class="candle-wrapper"><div class="wick" style="bottom: 200px; height: 160px;"></div><div class="body bear" style="bottom: 220px; height: 130px;"></div></div>
+            <div class="candle-wrapper"><div class="wick" style="bottom: 100px; height: 140px;"></div><div class="body bear" style="bottom: 110px; height: 110px;"></div></div>
+
+            <!-- Sell Side Liquidity Line -->
+            <div class="trendline dashed" style="bottom: 80px;"></div>
+            <div class="trendline-label" style="bottom: 30px; left: 50px; color: #434651;">SELL STOPS (SSL) $$$</div>
+        </div>
+        
+        <div class="watermark">@kuldeepsingh0234</div>
+    </div>
+
+    <!-- SLIDE 3: THE BUILD UP -->
+    <div class="slide">
+        <div class="content">
+            <h1>THE<br><span>RETAIL TRAP</span></h1>
+            <p>Retail traders see a <strong>"Strong Resistance"</strong>.<br>Smart money sees a giant pool of resting Buy Stops.</p>
+        </div>
+
+        <div class="chart-area">
+            <!-- Resistance Line -->
+            <div class="trendline" style="top: 150px; width: 800px; left: 40px;"></div>
+            <div class="trendline-label" style="top: 110px; left: 300px;">RETAIL RESISTANCE</div>
+
+            <!-- Touch 1 -->
+            <div class="candle-wrapper"><div class="wick" style="bottom: 100px; height: 200px;"></div><div class="body bull" style="bottom: 150px; height: 120px;"></div></div>
+            <div class="candle-wrapper"><div class="wick" style="bottom: 250px; height: 200px;"></div><div class="body bull" style="bottom: 270px; height: 160px;"></div></div>
+            <div class="candle-wrapper"><div class="wick" style="bottom: 350px; height: 110px;"></div><div class="body bear" style="bottom: 360px; height: 70px;"></div></div> <!-- Touches resistance -->
+            
+            <!-- Drop -->
+            <div class="candle-wrapper"><div class="wick" style="bottom: 220px; height: 160px;"></div><div class="body bear" style="bottom: 240px; height: 120px;"></div></div>
+            <div class="candle-wrapper"><div class="wick" style="bottom: 150px; height: 120px;"></div><div class="body bear" style="bottom: 170px; height: 70px;"></div></div>
+            
+            <!-- Touch 2 (Equal Highs created) -->
+            <div class="candle-wrapper"><div class="wick" style="bottom: 140px; height: 150px;"></div><div class="body bull" style="bottom: 160px; height: 110px;"></div></div>
+            <div class="candle-wrapper"><div class="wick" style="bottom: 250px; height: 190px;"></div><div class="body bull" style="bottom: 270px; height: 140px;"></div></div>
+            <div class="candle-wrapper"><div class="wick" style="bottom: 380px; height: 80px;"></div><div class="body bear" style="bottom: 390px; height: 40px;"></div></div> <!-- Touches resistance -->
+            
+            <!-- Drop again -->
+            <div class="candle-wrapper"><div class="wick" style="bottom: 280px; height: 120px;"></div><div class="body bear" style="bottom: 290px; height: 100px;"></div></div>
+
+            <div class="highlight-badge" style="top: 70px; right: 50px;">EQUAL HIGHS</div>
+        </div>
+
+        <div class="watermark">@kuldeepsingh0234</div>
+    </div>
+
+    <!-- SLIDE 4: THE INDUCEMENT -->
+    <div class="slide">
+        <div class="content">
+            <h1>BAITING THE<br><span>HERD</span></h1>
+            <p>Price compresses right below the level. This convinces impatient traders to short early and place stops above.</p>
+        </div>
+
+        <div class="chart-area">
+            <!-- Resistance Line -->
+            <div class="trendline" style="top: 150px; width: 800px; left: 40px;"></div>
+            
+            <!-- Previous Price Action (Faded slightly) -->
+            <div class="candle-wrapper" style="opacity:0.5;"><div class="wick" style="bottom: 140px; height: 150px;"></div><div class="body bull" style="bottom: 160px; height: 110px;"></div></div>
+            <div class="candle-wrapper" style="opacity:0.5;"><div class="wick" style="bottom: 250px; height: 190px;"></div><div class="body bull" style="bottom: 270px; height: 140px;"></div></div>
+            <div class="candle-wrapper" style="opacity:0.5;"><div class="wick" style="bottom: 380px; height: 80px;"></div><div class="body bear" style="bottom: 390px; height: 40px;"></div></div> 
+            <div class="candle-wrapper" style="opacity:0.5;"><div class="wick" style="bottom: 280px; height: 120px;"></div><div class="body bear" style="bottom: 290px; height: 100px;"></div></div>
+
+            <!-- Consolidation / Inducement -->
+            <div class="candle-wrapper"><div class="wick" style="bottom: 260px; height: 100px;"></div><div class="body bull" style="bottom: 280px; height: 60px;"></div></div>
+            <div class="candle-wrapper"><div class="wick" style="bottom: 320px; height: 90px;"></div><div class="body bear" style="bottom: 330px; height: 60px;"></div></div>
+            <div class="candle-wrapper"><div class="wick" style="bottom: 300px; height: 110px;"></div><div class="body bull" style="bottom: 320px; height: 70px;"></div></div>
+            <div class="candle-wrapper"><div class="wick" style="bottom: 340px; height: 90px;"></div><div class="body bear" style="bottom: 360px; height: 50px;"></div></div>
+            <div class="candle-wrapper"><div class="wick" style="bottom: 320px; height: 100px;"></div><div class="body bull" style="bottom: 340px; height: 60px;"></div></div>
+
+            <!-- Labels -->
+            <div class="highlight-badge" style="top: 250px; right: 100px; background-color: #434651;">"SHORT NOW!"</div>
+            <div class="trendline-label" style="top: 90px; right: 100px; color: #7E57C2;">$$$ STOPS BUILDING $$$</div>
+        </div>
+
+        <div class="watermark">@kuldeepsingh0234</div>
+    </div>
+
+    <!-- SLIDE 5: THE SWEEP -->
+    <div class="slide">
+        <div class="content">
+            <h1>THE<br><span>MANIPULATION</span></h1>
+            <p>The "Judas Swing". Price violently spikes through the resistance to hunt those resting stop losses.</p>
+        </div>
+
+        <div class="chart-area">
+            <!-- Resistance Line -->
+            <div class="trendline" style="top: 250px; width: 800px; left: 40px;"></div>
+            
+            <!-- Consolidation -->
+            <div class="candle-wrapper" style="opacity:0.5;"><div class="wick" style="bottom: 220px; height: 100px;"></div><div class="body bull" style="bottom: 240px; height: 60px;"></div></div>
+            <div class="candle-wrapper" style="opacity:0.5;"><div class="wick" style="bottom: 260px; height: 90px;"></div><div class="body bear" style="bottom: 270px; height: 60px;"></div></div>
+            <div class="candle-wrapper" style="opacity:0.5;"><div class="wick" style="bottom: 240px; height: 100px;"></div><div class="body bull" style="bottom: 260px; height: 60px;"></div></div>
+
+            <!-- The Sweep Candle -->
+            <div class="candle-wrapper">
+                <div class="wick" style="bottom: 250px; height: 320px; background-color: #7E57C2; width: 6px;"></div> <!-- Massive Wick above line -->
+                <div class="body bull" style="bottom: 280px; height: 60px;"></div>
+            </div>
+
+            <!-- Next Candle reversing -->
+            <div class="candle-wrapper"><div class="wick" style="bottom: 200px; height: 100px;"></div><div class="body bear" style="bottom: 210px; height: 70px;"></div></div>
+            <div class="candle-wrapper"><div class="wick" style="bottom: 120px; height: 120px;"></div><div class="body bear" style="bottom: 140px; height: 70px;"></div></div>
+
+            <div class="highlight-badge" style="top: 30px; right: 280px;">LIQUIDITY PURGED</div>
+            <div class="arrow-down" style="top: 100px; right: 380px;"></div>
+        </div>
+
+        <div class="watermark">@kuldeepsingh0234</div>
+    </div>
+
+    <!-- SLIDE 6: THE ENTRY -->
+    <div class="slide">
+        <div class="content">
+            <h1>THE<br><span>ENTRY</span></h1>
+            <p>Wait for aggressive displacement downwards. Enter on the pullback into the <strong>Fair Value Gap (FVG)</strong>.</p>
+        </div>
+
+        <div class="chart-area" style="position: relative;">
+            <!-- Sweep Wick (Historical) -->
+            <div class="candle-wrapper" style="opacity:0.4;"><div class="wick" style="bottom: 300px; height: 250px;"></div><div class="body bull" style="bottom: 330px; height: 50px;"></div></div>
+            
+            <!-- Reversal Displacement Candle 1 -->
+            <div class="candle-wrapper"><div class="wick" style="bottom: 250px; height: 120px;"></div><div class="body bear" style="bottom: 270px; height: 80px;"></div></div>
+            
+            <!-- Big Displacement Candle 2 (Creates FVG) -->
+            <div class="candle-wrapper">
+                <div class="wick" style="bottom: 80px; height: 210px;"></div>
+                <div class="body bear" style="bottom: 100px; height: 170px;"></div>
+            </div>
+            
+            <!-- Structure Low broken -->
+            <div class="trendline dashed" style="bottom: 220px; border-bottom: 3px dashed #787B86;"></div>
+            <div class="trendline-label" style="bottom: 180px; left: 50px; font-size: 20px; color: #787B86;">MARKET STRUCTURE SHIFT (MSS)</div>
+
+            <!-- FVG Box: Starts at Candle 1's low, ends at Candle 3's high -->
+            <!-- Candle 1 Low (Wick bottom) = 250px -->
+            <!-- Pullback Candle 1 High (Wick top) = 120px + 80px = 200px -->
+            <!-- So FVG gap is between 200px and 250px -->
+            <div style="position: absolute; bottom: 200px; left: 300px; width: 180px; height: 50px; background-color: rgba(126, 87, 194, 0.2); border-left: 3px solid #7E57C2;"></div>
+            <div class="trendline-label" style="bottom: 210px; left: 490px; color: #7E57C2; font-size: 20px; padding: 2px 5px;">FVG ENTRY</div>
+
+            <!-- Pullback Candle 1 (Candle 3 of the sequence, defines bottom of FVG) -->
+            <div class="candle-wrapper"><div class="wick" style="bottom: 120px; height: 80px;"></div><div class="body bull" style="bottom: 140px; height: 40px;"></div></div>
+            <!-- Pullback Candle 2 -->
+            <div class="candle-wrapper"><div class="wick" style="bottom: 160px; height: 100px;"></div><div class="body bull" style="bottom: 180px; height: 60px;"></div></div>
+            
+            <!-- Re-entering the FVG (The Entry Candle) -->
+            <div class="candle-wrapper"><div class="wick" style="bottom: 200px; height: 80px;"></div><div class="body bull" style="bottom: 210px; height: 50px;"></div></div>
+
+            <!-- Drop to Target -->
+            <div class="candle-wrapper"><div class="wick" style="bottom: 150px; height: 120px;"></div><div class="body bear" style="bottom: 160px; height: 80px;"></div></div>
+            <div class="candle-wrapper"><div class="wick" style="bottom: 50px; height: 130px;"></div><div class="body bear" style="bottom: 70px; height: 90px;"></div></div>
+
+        </div>
+
+        <div class="watermark">@kuldeepsingh0234</div>
+    </div>
+
+    <!-- SLIDE 7: CTA -->
+    <div class="slide">
+        <div class="slide-1-bg" style="transform: rotate(180deg);"></div>
+        <div class="cta-container">
+            <h2 style="font-size: 60px; color: #787B86;">WANT TO MASTER SMC?</h2>
+            <div class="cta-button">FOLLOW</div>
+            <h2 style="font-size: 50px;">AND COMMENT<br><span style="color: #7E57C2; font-size: 80px;">"LIQUIDITY"</span></h2>
+            <p style="font-size: 35px; color: #131722; font-weight: 700; margin-top: 30px;">I'll send you the full guide in DMs.</p>
+        </div>
+        <div class="watermark">@kuldeepsingh0234</div>
+    </div>
+
+</body>
+</html>
