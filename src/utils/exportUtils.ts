@@ -12,11 +12,14 @@ export async function exportNodeAsImage(
   filename: string,
   format: ExportFormat = 'png'
 ): Promise<void> {
+  const width = node.offsetWidth || 1080;
+  const height = node.offsetHeight || 1350;
+
   const options = {
-    canvasWidth: 1080,
-    canvasHeight: 1350,
+    canvasWidth: width,
+    canvasHeight: height,
     quality: 1,
-    pixelRatio: 2,
+    pixelRatio: width < 600 ? 3 : 2, // Use 3x for smaller slides to guarantee pristine text metrics
     cacheBust: true,
     style: {
       transform: 'none',
@@ -46,23 +49,27 @@ export async function exportAllAsZip(
 ): Promise<void> {
   const zip = new JSZip();
 
-  const options = {
-    canvasWidth: 1080,
-    canvasHeight: 1350,
-    quality: 1,
-    pixelRatio: 2,
-    cacheBust: true,
-    style: {
-      transform: 'none',
-    },
-  };
-
   for (let i = 0; i < nodes.length; i++) {
     onProgress?.(i + 1, nodes.length);
 
+    const node = nodes[i];
+    const width = node.offsetWidth || 1080;
+    const height = node.offsetHeight || 1350;
+
+    const options = {
+      canvasWidth: width,
+      canvasHeight: height,
+      quality: 1,
+      pixelRatio: width < 600 ? 3 : 2,
+      cacheBust: true,
+      style: {
+        transform: 'none',
+      },
+    };
+
     const dataUrl = format === 'jpg'
-      ? await toJpeg(nodes[i], options)
-      : await toPng(nodes[i], options);
+      ? await toJpeg(node, options)
+      : await toPng(node, options);
 
     const base64Data = dataUrl.split(',')[1];
     zip.file(`slide-${String(i + 1).padStart(2, '0')}.${format}`, base64Data, { base64: true });

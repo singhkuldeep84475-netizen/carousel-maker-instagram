@@ -82,6 +82,10 @@ const App: React.FC = () => {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [showVerified, setShowVerified] = useState(false);
 
+  // Dynamic aspect ratio states
+  const [slideWidth, setSlideWidth] = useState(1080);
+  const [slideHeight, setSlideHeight] = useState(1350);
+
   // Tab State: 'code' | 'brand' | 'export'
   const [activeTab, setActiveTab] = useState<'code' | 'brand' | 'export'>('code');
 
@@ -89,8 +93,9 @@ const App: React.FC = () => {
   const previewScrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const parseAndRender = useCallback(() => {
-    if (!htmlCode.trim()) {
+  const parseAndRender = useCallback((codeOverride?: string) => {
+    const targetCode = typeof codeOverride === 'string' ? codeOverride : htmlCode;
+    if (!targetCode.trim()) {
       setError('Please paste or upload your HTML code first.');
       return;
     }
@@ -115,7 +120,7 @@ const App: React.FC = () => {
 
         // Parse HTML to extract styles and body
         const parser = new DOMParser();
-        const doc = parser.parseFromString(htmlCode, 'text/html');
+        const doc = parser.parseFromString(targetCode, 'text/html');
 
         // Extract all <style> tags and <link> tags
         const styles = doc.querySelectorAll('style');
@@ -149,19 +154,20 @@ const App: React.FC = () => {
           
           // Inject custom branding if enabled
           if (enableBranding) {
+            const handleText = instaHandle.trim() 
+              ? (instaHandle.startsWith('@') ? instaHandle : `@${instaHandle}`)
+              : null;
+
+            // 1. Target standard simple .watermark classes
             const watermarks = slideClone.querySelectorAll('.watermark');
             watermarks.forEach(watermark => {
-              // Force parent opacity to 1 so the dark pill is highly readable
               (watermark as HTMLElement).style.opacity = '1';
-              
-              const handleText = instaHandle.trim() 
-                ? (instaHandle.startsWith('@') ? instaHandle : `@${instaHandle}`)
-                : '@yourusername';
+              const finalHandle = handleText || '@yourusername';
               
               watermark.innerHTML = `
                 <div style="display: inline-flex; align-items: center; justify-content: center; gap: 10px; padding: 10px 20px; background: rgba(0, 0, 0, 0.65); border-radius: 12px; border: 1.5px solid rgba(255, 255, 255, 0.15); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); color: #ffffff; text-align: center; vertical-align: middle; box-shadow: 0 8px 32px rgba(0,0,0,0.25);">
                   ${avatarUrl ? `<img src="${avatarUrl}" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 1.5px solid rgba(255,255,255,0.25); flex-shrink: 0;" />` : ''}
-                  <span style="font-size: 24px; font-weight: 700; color: #ffffff; letter-spacing: 0.5px; text-transform: none; font-family: 'Inter', sans-serif;">${handleText}</span>
+                  <span style="font-size: 24px; font-weight: 700; color: #ffffff; letter-spacing: 0.5px; text-transform: none; font-family: 'Inter', sans-serif;">${finalHandle}</span>
                   ${showVerified ? `
                     <svg viewBox="0 0 24 24" width="22" height="22" style="flex-shrink: 0; fill: #0095f6; display: inline-block; vertical-align: middle; margin-left: 2px;">
                       <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.99-3.818-3.99-.488 0-.95.1-1.37.28C14.73 2.5 13.435 1.5 12 1.5s-2.73 1-3.402 2.29c-.42-.18-.882-.28-1.37-.28C5.12 3.51 3.41 5.29 3.41 7.5c0 .495.084.965.238 1.4-1.273.65-2.148 2.02-2.148 3.6 0 1.58.875 2.95 2.148 3.6-.154.435-.238.905-.238 1.4 0 2.21 1.71 3.99 3.818 3.99.488 0 .95-.1 1.37-.28.672 1.29 1.967 2.29 3.402 2.29s2.73-1 3.402-2.29c.42.18.882.28 1.37.28 2.108 0 3.818-1.78 3.818-3.99 0-.495-.084-.965-.238-1.4 1.273-.65 2.148-2.02 2.148-3.6zm-12.5 4l-4-4 1.41-1.41L10 13.67l6.59-6.59 1.41 1.41-8 8z" />
@@ -170,11 +176,49 @@ const App: React.FC = () => {
                 </div>
               `;
             });
+
+            // 2. Target custom .fhandle, .brand-handle and .cta-handle classes
+            const handles = slideClone.querySelectorAll('.fhandle, .brand-handle, .cta-handle');
+            handles.forEach(handleEl => {
+              if (handleText) {
+                if (handleEl.classList.contains('cta-handle')) {
+                  handleEl.textContent = `Follow ${handleText}`;
+                } else {
+                  handleEl.textContent = handleText;
+                }
+              }
+            });
+
+            // 3. Target custom .avatar and .brand-avatar classes
+            const avatars = slideClone.querySelectorAll('.avatar, .brand-avatar');
+            avatars.forEach(avatarEl => {
+              if (avatarUrl) {
+                avatarEl.innerHTML = `<img src="${avatarUrl}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block;" />`;
+              }
+            });
+
+            // 4. Target .vbadge and .verified-badge elements
+            const badges = slideClone.querySelectorAll('.vbadge, .verified-badge');
+            badges.forEach(badge => {
+              (badge as HTMLElement).style.display = showVerified ? 'inline-flex' : 'none';
+            });
+
+            // 5. Append verified badge to name if it's not present
+            if (showVerified && badges.length === 0) {
+              const names = slideClone.querySelectorAll('.fname, .brand-name');
+              names.forEach(nameEl => {
+                if (!nameEl.querySelector('svg') && !nameEl.querySelector('.vbadge') && !nameEl.querySelector('.verified-badge')) {
+                  const verifiedSpan = document.createElement('span');
+                  verifiedSpan.className = 'verified-badge';
+                  verifiedSpan.style.cssText = 'width: 14px; height: 14px; background: #1DA1F2; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; margin-left: 4px;';
+                  verifiedSpan.innerHTML = `<svg viewBox="0 0 8 8" fill="none" style="width: 8px; height: 8px;"><path d="M1 4L3 6L7 2" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+                  nameEl.appendChild(verifiedSpan);
+                }
+              });
+            }
           }
 
-          // Force exact dimensions for export
-          slideClone.style.width = '1080px';
-          slideClone.style.height = '1350px';
+          // Let native CSS dimensions apply, only fallback to 1080x1350 if not defined in stylesheet
           slideClone.style.position = 'relative';
           slideClone.style.overflow = 'hidden';
           slideClone.style.flexShrink = '0';
@@ -185,15 +229,29 @@ const App: React.FC = () => {
 
         container.appendChild(wrapper);
 
+        // Dynamically measure layout dimensions of the first parsed slide
+        const tempContainer = document.createElement('div');
+        tempContainer.style.position = 'absolute';
+        tempContainer.style.visibility = 'hidden';
+        tempContainer.appendChild(renderedNodes[0].cloneNode(true));
+        document.body.appendChild(tempContainer);
+
+        const measuredSlide = tempContainer.firstChild as HTMLElement;
+        const measuredWidth = measuredSlide.offsetWidth || 1080;
+        const measuredHeight = measuredSlide.offsetHeight || 1350;
+
+        setSlideWidth(measuredWidth);
+        setSlideHeight(measuredHeight);
+
+        document.body.removeChild(tempContainer);
+
         // Wait for fonts/images to load
         setTimeout(() => {
           setSlideNodes(renderedNodes);
           setSelectedSlide(0);
           setIsProcessing(false);
-          // Auto switch to brand tab to help guide them
-          if (activeTab === 'code') {
-            setActiveTab('brand');
-          }
+          // Auto switch to brand tab so they can see the settings instantly!
+          setActiveTab('brand');
         }, 500);
 
       } catch (err: any) {
@@ -244,6 +302,7 @@ const App: React.FC = () => {
 
   const loadSample = () => {
     setHtmlCode(SAMPLE_HTML);
+    parseAndRender(SAMPLE_HTML); // Auto parse sample!
   };
 
   const handleClear = () => {
@@ -276,7 +335,9 @@ const App: React.FC = () => {
     if (file && file.name.endsWith('.html')) {
       const reader = new FileReader();
       reader.onload = (event) => {
-        setHtmlCode(event.target?.result as string);
+        const code = event.target?.result as string;
+        setHtmlCode(code);
+        parseAndRender(code); // AUTO PARSE INSTANTLY ON DROP!
       };
       reader.readAsText(file);
     }
@@ -288,7 +349,9 @@ const App: React.FC = () => {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = (event) => {
-      setHtmlCode(event.target?.result as string);
+      const code = event.target?.result as string;
+      setHtmlCode(code);
+      parseAndRender(code); // AUTO PARSE INSTANTLY ON UPLOAD!
     };
     reader.readAsText(file);
   };
@@ -303,13 +366,22 @@ const App: React.FC = () => {
     reader.readAsDataURL(file);
   };
 
+  // Canvas Scaling calculations
+  const centerpieceHeight = 500;
+  const centerpieceScale = centerpieceHeight / slideHeight;
+  const centerpieceWidth = slideWidth * centerpieceScale;
+
+  const thumbHeight = 60;
+  const thumbScale = thumbHeight / slideHeight;
+  const thumbWidth = slideWidth * thumbScale;
+
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-50 flex flex-col overflow-hidden">
       {/* Hidden render container */}
       <div id="render-container" ref={renderContainerRef} />
 
       {/* Premium Minimalist Header */}
-      <header className="h-14 border-b border-white/5 flex items-center justify-between px-6 bg-zinc-950/80 backdrop-blur-md z-50">
+      <header className="h-14 border-b border-white/5 flex items-center justify-between px-6 bg-zinc-950/85 backdrop-blur-md z-50">
         <div className="flex items-center gap-3">
           <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center">
             <span className="text-zinc-950 text-[10px] font-black tracking-tighter">IC</span>
@@ -322,7 +394,7 @@ const App: React.FC = () => {
         {slideNodes.length > 0 && (
           <div className="flex items-center gap-4 animate-fadeIn">
             <span className="text-[10px] uppercase tracking-wider text-zinc-400 font-semibold bg-white/5 border border-white/10 px-2.5 py-1 rounded-md">
-              {slideNodes.length} Slides Loaded
+              {slideNodes.length} Slides Loaded ({slideWidth}x{slideHeight}px)
             </span>
             <button
               onClick={handleClear}
@@ -398,7 +470,7 @@ const App: React.FC = () => {
                     onDragOver={handleDragOver}
                     onDragLeave={handleDragLeave}
                     onDrop={handleDrop}
-                    placeholder={`Paste code here or drag & drop HTML file...\n\nUse <div class="slide"> for slides (1080×1350px).\n\nUse <div class="watermark"> for custom handles.`}
+                    placeholder={`Paste code here or drag & drop HTML file...\n\nUses class="slide" (1080×1350px or 360x450px).\n\nWatermarks, handles & avatar logos are replaced dynamically!`}
                     className={cn(
                       "w-full h-full bg-transparent text-[11px] text-zinc-400 placeholder:text-zinc-700 p-4 focus:outline-none transition-all duration-200 resize-none font-mono leading-relaxed",
                       isDragging && "bg-white/[0.02]"
@@ -414,7 +486,7 @@ const App: React.FC = () => {
                 </div>
 
                 <button
-                  onClick={parseAndRender}
+                  onClick={() => parseAndRender()}
                   disabled={!htmlCode.trim() || isProcessing}
                   className="w-full bg-white text-zinc-950 hover:bg-zinc-200 disabled:bg-zinc-900 disabled:text-zinc-600 disabled:border-zinc-800 border border-white/10 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2 mt-auto"
                 >
@@ -457,7 +529,7 @@ const App: React.FC = () => {
                     <Settings className="w-8 h-8 text-zinc-700 mb-3" />
                     <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider mb-1">Branding is Disabled</p>
                     <p className="text-[9px] text-zinc-600 max-w-[200px]">
-                      Enable custom branding to auto-inject your logo and watermark credentials.
+                      Enable custom branding to auto-replace the logo/avatar, verified badge, and handle name.
                     </p>
                   </div>
                 ) : (
@@ -662,7 +734,7 @@ const App: React.FC = () => {
                 InstaCarousel Canvas
               </h2>
               <p className="text-[11px] text-zinc-500 leading-relaxed mb-5">
-                Import your Instagram HTML slide code. The tool will parse each slide at the exact 1080×1350px 4:5 portrait ratio ready for exporting.
+                Import your Instagram HTML slide code. The tool will parse each slide at its designed portrait ratio ready for exporting.
               </p>
               <div className="flex gap-3 justify-center w-full">
                 <button
@@ -720,15 +792,20 @@ const App: React.FC = () => {
                   <ChevronLeft className="w-5 h-5" />
                 </button>
 
-                {/* Main 4:5 Instagram Canvas Container */}
+                {/* Main Dynamic Instagram Canvas Container */}
                 <div 
-                  className="w-[400px] h-[500px] shadow-[0_30px_100px_-20px_rgba(0,0,0,0.85)] border border-white/10 rounded-2xl overflow-hidden relative bg-black transition-all duration-300 transform"
+                  className="shadow-[0_30px_100px_-20px_rgba(0,0,0,0.85)] border border-white/10 rounded-2xl overflow-hidden relative bg-black transition-all duration-300 transform"
+                  style={{ width: `${centerpieceWidth}px`, height: `${centerpieceHeight}px` }}
                 >
                   {/* CSS Hard-Scaled Dynamic Node Rendering */}
                   <div 
                     dangerouslySetInnerHTML={{ __html: slideNodes[selectedSlide].outerHTML }} 
-                    className="origin-top-left scale-[0.37037] pointer-events-none absolute inset-0"
-                    style={{ width: '1080px', height: '1350px' }}
+                    className="origin-top-left pointer-events-none absolute inset-0 bg-white"
+                    style={{ 
+                      width: `${slideWidth}px`, 
+                      height: `${slideHeight}px`,
+                      transform: `scale(${centerpieceScale})`
+                    }}
                   />
                 </div>
 
@@ -750,17 +827,22 @@ const App: React.FC = () => {
                     key={index}
                     onClick={() => setSelectedSlide(index)}
                     className={cn(
-                      "w-12 h-15 rounded-lg border-2 overflow-hidden flex-shrink-0 cursor-pointer transition-all duration-300 relative bg-black",
+                      "rounded-lg border-2 overflow-hidden flex-shrink-0 cursor-pointer transition-all duration-300 relative bg-black",
                       index === selectedSlide
                         ? "border-white scale-[1.05]"
                         : "border-transparent opacity-40 hover:opacity-80"
                     )}
+                    style={{ width: `${thumbWidth}px`, height: `${thumbHeight}px` }}
                   >
                     {/* Tiny scaled micro-thumbnail */}
                     <div 
                       dangerouslySetInnerHTML={{ __html: node.outerHTML }} 
-                      className="origin-top-left scale-[0.0444] pointer-events-none absolute inset-0"
-                      style={{ width: '1080px', height: '1350px' }}
+                      className="origin-top-left pointer-events-none absolute inset-0 bg-white"
+                      style={{ 
+                        width: `${slideWidth}px`, 
+                        height: `${slideHeight}px`,
+                        transform: `scale(${thumbScale})`
+                      }}
                     />
                   </div>
                 ))}
