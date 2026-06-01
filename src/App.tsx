@@ -78,6 +78,7 @@ const App: React.FC = () => {
 
   // Custom Branding State
   const [enableBranding, setEnableBranding] = useState(false);
+  const [displayName, setDisplayName] = useState('');
   const [instaHandle, setInstaHandle] = useState('');
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [showVerified, setShowVerified] = useState(false);
@@ -130,6 +131,13 @@ const App: React.FC = () => {
         styles.forEach(style => {
           const cloned = style.cloneNode(true) as HTMLStyleElement;
           cloned.setAttribute('data-injected', 'true');
+          
+          let cssText = style.innerHTML;
+          // Scopes body/html tags to avoid styles leaking into React app
+          cssText = cssText.replace(/\bbody\b/g, '.slide-body-mock');
+          cssText = cssText.replace(/\bhtml\b/g, '.slide-body-mock');
+          
+          cloned.innerHTML = cssText;
           document.head.appendChild(cloned);
         });
 
@@ -150,7 +158,13 @@ const App: React.FC = () => {
 
         slides.forEach((slide, index) => {
           const slideClone = slide.cloneNode(true) as HTMLElement;
-          slideClone.id = `render-slide-${index}`;
+          slideClone.id = `render-slide-${index}-inner`;
+          
+          // Bypass hidden slide styles by adding standard activation classes
+          slideClone.classList.add('active', 'show', 'visible', 'current');
+          if (slideClone.style.display === 'none') {
+            slideClone.style.display = '';
+          }
           
           // Inject custom branding if enabled
           if (enableBranding) {
@@ -177,7 +191,19 @@ const App: React.FC = () => {
               `;
             });
 
-            // 2. Target custom .fhandle, .brand-handle and .cta-handle classes
+            // 2. Target custom .fname and .brand-name classes for Display Name
+            if (displayName.trim()) {
+              const names = slideClone.querySelectorAll('.fname, .brand-name');
+              names.forEach(nameEl => {
+                const originalBadge = nameEl.querySelector('.vbadge, .verified-badge');
+                nameEl.innerHTML = displayName.trim();
+                if (showVerified && originalBadge) {
+                  nameEl.appendChild(originalBadge);
+                }
+              });
+            }
+
+            // 3. Target custom .fhandle, .brand-handle and .cta-handle classes
             const handles = slideClone.querySelectorAll('.fhandle, .brand-handle, .cta-handle');
             handles.forEach(handleEl => {
               if (handleText) {
@@ -189,7 +215,7 @@ const App: React.FC = () => {
               }
             });
 
-            // 3. Target custom .avatar and .brand-avatar classes
+            // 4. Target custom .avatar and .brand-avatar classes
             const avatars = slideClone.querySelectorAll('.avatar, .brand-avatar');
             avatars.forEach(avatarEl => {
               if (avatarUrl) {
@@ -197,13 +223,13 @@ const App: React.FC = () => {
               }
             });
 
-            // 4. Target .vbadge and .verified-badge elements
+            // 5. Target .vbadge and .verified-badge elements
             const badges = slideClone.querySelectorAll('.vbadge, .verified-badge');
             badges.forEach(badge => {
               (badge as HTMLElement).style.display = showVerified ? 'inline-flex' : 'none';
             });
 
-            // 5. Append verified badge to name if it's not present
+            // 6. Append verified badge to name if it's not present
             if (showVerified && badges.length === 0) {
               const names = slideClone.querySelectorAll('.fname, .brand-name');
               names.forEach(nameEl => {
@@ -216,15 +242,48 @@ const App: React.FC = () => {
                 }
               });
             }
+
+            // 7. Apply a premium glassmorphic dark background container for `.footer`, `.brand-footer`, and `.s8-footer`
+            const footers = slideClone.querySelectorAll('.footer, .brand-footer, .s8-footer');
+            footers.forEach(footerEl => {
+              const f = footerEl as HTMLElement;
+              f.style.background = 'rgba(0, 0, 0, 0.65)';
+              f.style.backdropFilter = 'blur(10px)';
+              f.style.webkitBackdropFilter = 'blur(10px)';
+              f.style.borderRadius = '12px';
+              f.style.border = '1px solid rgba(255, 255, 255, 0.12)';
+              f.style.padding = '12px 18px';
+              f.style.boxShadow = '0 8px 32px rgba(0, 0, 0, 0.3)';
+              
+              // Force text elements inside the glass box to remain white & legible
+              const textElements = f.querySelectorAll('.fname, .brand-name, .fhandle, .brand-handle, .cta-handle');
+              textElements.forEach(textEl => {
+                const t = textEl as HTMLElement;
+                if (t.classList.contains('fhandle') || t.classList.contains('brand-handle')) {
+                  t.style.setProperty('color', 'rgba(255, 255, 255, 0.6)', 'important');
+                } else {
+                  t.style.setProperty('color', '#ffffff', 'important');
+                }
+              });
+            });
           }
 
-          // Let native CSS dimensions apply, only fallback to 1080x1350 if not defined in stylesheet
+          // Let native CSS dimensions apply
           slideClone.style.position = 'relative';
           slideClone.style.overflow = 'hidden';
           slideClone.style.flexShrink = '0';
 
-          wrapper.appendChild(slideClone);
-          renderedNodes.push(slideClone);
+          // Wrap the slide inside a slide-body-mock container to match scoped styles
+          const slideWrapper = document.createElement('div');
+          slideWrapper.className = 'slide-body-mock';
+          slideWrapper.id = `render-slide-${index}`;
+          slideWrapper.style.position = 'relative';
+          slideWrapper.style.overflow = 'hidden';
+          slideWrapper.style.flexShrink = '0';
+          slideWrapper.appendChild(slideClone);
+
+          wrapper.appendChild(slideWrapper);
+          renderedNodes.push(slideWrapper);
         });
 
         container.appendChild(wrapper);
@@ -233,15 +292,25 @@ const App: React.FC = () => {
         const tempContainer = document.createElement('div');
         tempContainer.style.position = 'absolute';
         tempContainer.style.visibility = 'hidden';
-        tempContainer.appendChild(renderedNodes[0].cloneNode(true));
+        
+        // Clone slide wrapper node for measurement
+        const firstClone = renderedNodes[0].cloneNode(true) as HTMLElement;
+        tempContainer.appendChild(firstClone);
         document.body.appendChild(tempContainer);
 
-        const measuredSlide = tempContainer.firstChild as HTMLElement;
-        const measuredWidth = measuredSlide.offsetWidth || 1080;
-        const measuredHeight = measuredSlide.offsetHeight || 1350;
+        // Find the inner .slide element for accurate sizing metrics
+        const measuredInner = firstClone.querySelector('.slide') as HTMLElement;
+        const measuredWidth = measuredInner?.offsetWidth || 1080;
+        const measuredHeight = measuredInner?.offsetHeight || 1350;
 
         setSlideWidth(measuredWidth);
         setSlideHeight(measuredHeight);
+
+        // Set dimensions on the wrappers to contain the layout correctly
+        renderedNodes.forEach((node) => {
+          node.style.width = `${measuredWidth}px`;
+          node.style.height = `${measuredHeight}px`;
+        });
 
         document.body.removeChild(tempContainer);
 
@@ -259,14 +328,14 @@ const App: React.FC = () => {
         setIsProcessing(false);
       }
     }, 100);
-  }, [htmlCode, enableBranding, instaHandle, avatarUrl, showVerified, activeTab]);
+  }, [htmlCode, enableBranding, displayName, instaHandle, avatarUrl, showVerified, activeTab]);
 
   // Live reload slides when branding changes to keep preview synced
   useEffect(() => {
     if (htmlCode.trim() && slideNodes.length > 0) {
       parseAndRender();
     }
-  }, [enableBranding, instaHandle, avatarUrl, showVerified]);
+  }, [enableBranding, displayName, instaHandle, avatarUrl, showVerified]);
 
   const handleExportSingle = async (index: number) => {
     if (slideNodes.length === 0 || isExporting) return;
@@ -568,6 +637,18 @@ const App: React.FC = () => {
                       </div>
                     </div>
 
+                    {/* Display Name */}
+                    <div className="space-y-2">
+                      <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Display Name</label>
+                      <input
+                        type="text"
+                        value={displayName}
+                        onChange={(e) => setDisplayName(e.target.value)}
+                        placeholder="Financial Singh"
+                        className="w-full bg-black/40 border border-white/5 focus:border-white/20 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none placeholder:text-zinc-700 transition-colors"
+                      />
+                    </div>
+
                     {/* Instagram Handle */}
                     <div className="space-y-2">
                       <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Handle Name</label>
@@ -818,6 +899,43 @@ const App: React.FC = () => {
                   <ChevronRight className="w-5 h-5" />
                 </button>
 
+              </div>
+
+              {/* Sleek Floating Centerpiece Control Toolbar */}
+              <div className="bg-zinc-950/90 border border-white/5 backdrop-blur-xl rounded-2xl py-3 px-5 shadow-[0_20px_50px_rgba(0,0,0,0.6)] flex items-center justify-between gap-6 w-fit min-w-[460px] z-30 mb-8 mt-2 animate-fadeIn">
+                <div className="flex items-center gap-3">
+                  <span className="text-[10px] font-black tracking-widest text-zinc-400 bg-white/5 px-2.5 py-1.5 rounded-lg border border-white/10">
+                    SLIDE {String(selectedSlide + 1).padStart(2, '0')} / {String(slideNodes.length).padStart(2, '0')}
+                  </span>
+                </div>
+
+                <div className="h-4 w-px bg-white/10" />
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleExportSingle(selectedSlide)}
+                    disabled={isExporting || isExportingAll}
+                    className="text-[10px] font-bold uppercase tracking-wider py-1.5 px-3.5 rounded-xl bg-white text-zinc-950 hover:bg-zinc-200 transition-all flex items-center gap-1.5 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-40 cursor-pointer"
+                  >
+                    <Download className="w-3 h-3" /> Export Current
+                  </button>
+                  <button
+                    onClick={handleExportAll}
+                    disabled={isExporting || isExportingAll}
+                    className="text-[10px] font-bold uppercase tracking-wider py-1.5 px-3.5 rounded-xl border border-white/10 bg-white/5 text-white hover:bg-white/10 transition-all flex items-center gap-1.5 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-40 cursor-pointer"
+                  >
+                    {isExportingAll ? (
+                      <>
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                        ZIP ({exportProgress.current}/{exportProgress.total})
+                      </>
+                    ) : (
+                      <>
+                        <Archive className="w-3 h-3" /> Download ZIP
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
 
               {/* Floating Slide Thumbnail Strip Carousel */}
