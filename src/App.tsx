@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import {
   Code2, Image, Download, Archive, Loader2,
   Sparkles, ChevronLeft, ChevronRight, FileType, Trash2,
-  Upload, User
+  Upload, User, Settings, FolderDown
 } from 'lucide-react';
 import { exportNodeAsImage, exportAllAsZip, ExportFormat } from './utils/exportUtils';
 import { cn } from './utils/cn';
@@ -45,14 +45,19 @@ const SAMPLE_HTML = `<!DOCTYPE html>
 </head>
 <body>
     <div class="slide">
-        <h1>WHAT IS <span>LIQUIDITY</span>?</h1>
-        <p>Understanding where smart money moves in the market.</p>
-        <div class="watermark">@yourusername</div>
+        <h1>HOW TO BUILD <span>WEALTH</span></h1>
+        <p>A simple masterclass on assets vs liabilities.</p>
+        <div class="watermark">@financialsingh</div>
     </div>
     <div class="slide">
-        <h1>BUY-SIDE <span>LIQUIDITY</span></h1>
-        <p>Stop losses above highs create pools of liquidity that institutions target.</p>
-        <div class="watermark">@yourusername</div>
+        <h1>ASSETS VS <span>LIABILITIES</span></h1>
+        <p>Assets put money inside your pocket. Liabilities take money out.</p>
+        <div class="watermark">@financialsingh</div>
+    </div>
+    <div class="slide">
+        <h1>THE <span>GOLDEN RULE</span></h1>
+        <p>Buy assets first. Buy liabilities last, using asset cashflow.</p>
+        <div class="watermark">@financialsingh</div>
     </div>
 </body>
 </html>`;
@@ -76,6 +81,9 @@ const App: React.FC = () => {
   const [instaHandle, setInstaHandle] = useState('');
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [showVerified, setShowVerified] = useState(false);
+
+  // Tab State: 'code' | 'brand' | 'export'
+  const [activeTab, setActiveTab] = useState<'code' | 'brand' | 'export'>('code');
 
   const renderContainerRef = useRef<HTMLDivElement>(null);
   const previewScrollRef = useRef<HTMLDivElement>(null);
@@ -177,6 +185,10 @@ const App: React.FC = () => {
           setSlideNodes(renderedNodes);
           setSelectedSlide(0);
           setIsProcessing(false);
+          // Auto switch to brand tab to help guide them
+          if (activeTab === 'code') {
+            setActiveTab('brand');
+          }
         }, 500);
 
       } catch (err: any) {
@@ -184,7 +196,7 @@ const App: React.FC = () => {
         setIsProcessing(false);
       }
     }, 100);
-  }, [htmlCode, enableBranding, instaHandle, avatarUrl, showVerified]);
+  }, [htmlCode, enableBranding, instaHandle, avatarUrl, showVerified, activeTab]);
 
   // Live reload slides when branding changes to keep preview synced
   useEffect(() => {
@@ -193,12 +205,12 @@ const App: React.FC = () => {
     }
   }, [enableBranding, instaHandle, avatarUrl, showVerified]);
 
-  const handleExportSingle = async () => {
+  const handleExportSingle = async (index: number) => {
     if (slideNodes.length === 0 || isExporting) return;
     setIsExporting(true);
     try {
-      const filename = `${instaHandle.trim() ? instaHandle.replace('@', '') : 'slide'}-${String(selectedSlide + 1).padStart(2, '0')}`;
-      await exportNodeAsImage(slideNodes[selectedSlide], filename, exportFormat);
+      const filename = `${instaHandle.trim() ? instaHandle.replace('@', '') : 'slide'}-${String(index + 1).padStart(2, '0')}`;
+      await exportNodeAsImage(slideNodes[index], filename, exportFormat);
     } catch (err: any) {
       console.error('Export error:', err);
       alert('Failed to export slide. Please try again.');
@@ -237,15 +249,7 @@ const App: React.FC = () => {
     if (renderContainerRef.current) {
       renderContainerRef.current.innerHTML = '';
     }
-  };
-
-  const scrollPreview = (direction: 'left' | 'right') => {
-    if (previewScrollRef.current) {
-      previewScrollRef.current.scrollBy({
-        left: direction === 'left' ? -280 : 280,
-        behavior: 'smooth',
-      });
-    }
+    setActiveTab('code');
   };
 
   // Drag & drop handlers
@@ -293,59 +297,75 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-zinc-950 text-zinc-50 flex flex-col overflow-hidden">
       {/* Hidden render container */}
       <div id="render-container" ref={renderContainerRef} />
 
-      {/* Header */}
-      <header className="border-b border-white/5 backdrop-blur-xl bg-white/[0.02] sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/25">
-                <Sparkles className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <h1 className="text-lg font-bold text-white tracking-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                  InstaCarousel Designer
-                </h1>
-                <p className="text-[11px] text-white/30 -mt-0.5">Parse HTML • Brand Instantly • Export 4:5 ZIP</p>
-              </div>
-            </div>
-
-            {slideNodes.length > 0 && (
-              <div className="flex items-center gap-2 animate-fadeIn">
-                <span className="text-xs text-indigo-400 bg-indigo-500/10 px-3.5 py-1.5 rounded-full border border-indigo-500/25 font-semibold">
-                  {slideNodes.length} Slide{slideNodes.length !== 1 ? 's' : ''} Loaded
-                </span>
-              </div>
-            )}
+      {/* Premium Minimalist Header */}
+      <header className="h-14 border-b border-white/5 flex items-center justify-between px-6 bg-zinc-950/80 backdrop-blur-md z-50">
+        <div className="flex items-center gap-3">
+          <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center">
+            <span className="text-zinc-950 text-[10px] font-black tracking-tighter">IC</span>
           </div>
+          <h1 className="text-xs font-semibold tracking-[0.2em] text-white uppercase font-display">
+            InstaCarousel Workbench
+          </h1>
         </div>
+        
+        {slideNodes.length > 0 && (
+          <div className="flex items-center gap-4 animate-fadeIn">
+            <span className="text-[10px] uppercase tracking-wider text-zinc-400 font-semibold bg-white/5 border border-white/10 px-2.5 py-1 rounded-md">
+              {slideNodes.length} Slides Loaded
+            </span>
+            <button
+              onClick={handleClear}
+              className="text-[10px] uppercase tracking-wider text-red-400 hover:text-red-300 font-semibold border border-red-500/20 bg-red-500/5 px-2.5 py-1 rounded-md transition-colors"
+            >
+              Reset
+            </button>
+          </div>
+        )}
       </header>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Main Workbench Layout */}
+      <main className="flex-1 flex h-[calc(100vh-56px)] overflow-hidden relative">
 
-        {/* Input Phase - Split Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+        {/* Left Control Panel / Sidebar */}
+        <section className="w-80 border-r border-white/5 bg-zinc-950 flex flex-col h-full z-20 flex-shrink-0">
           
-          {/* HTML Input Section - Takes 2/3 width */}
-          <section className="lg:col-span-2">
-            <div className="bg-white/[0.02] border border-white/5 rounded-2xl overflow-hidden backdrop-blur-sm h-full flex flex-col justify-between">
-              <div>
-                {/* Toolbar */}
-                <div className="flex items-center justify-between px-5 py-3 border-b border-white/5 bg-white/[0.02]">
-                  <div className="flex items-center gap-2">
-                    <Code2 className="w-4 h-4 text-indigo-400" />
-                    <span className="text-sm font-medium text-white/60">HTML Code</span>
-                  </div>
-                  <div className="flex items-center gap-2">
+          {/* Custom Tab Selector */}
+          <div className="flex border-b border-white/5 p-1 bg-zinc-950/50">
+            {(['code', 'brand', 'export'] as const).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={cn(
+                  "flex-1 py-2 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all",
+                  activeTab === tab
+                    ? "bg-white/10 text-white shadow-sm"
+                    : "text-zinc-500 hover:text-zinc-300 hover:bg-white/5"
+                )}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
+
+          {/* Tab Content Container */}
+          <div className="flex-1 overflow-y-auto p-5 scrollbar-hide">
+            
+            {/* CODE TAB */}
+            {activeTab === 'code' && (
+              <div className="space-y-5 h-full flex flex-col">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold">HTML Core Source</span>
+                  <div className="flex items-center gap-1.5">
                     <button
                       onClick={() => fileInputRef.current?.click()}
-                      className="text-xs px-3 py-1.5 rounded-lg text-white/70 bg-white/5 hover:bg-white/10 border border-white/10 transition-all flex items-center gap-1.5"
+                      className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/5 border border-white/5 transition-all"
+                      title="Upload HTML File"
                     >
-                      <Upload className="w-3 h-3" /> Upload HTML
+                      <Upload className="w-3.5 h-3.5" />
                     </button>
                     <input 
                       type="file" 
@@ -356,95 +376,64 @@ const App: React.FC = () => {
                     />
                     <button
                       onClick={loadSample}
-                      className="text-xs px-3 py-1.5 rounded-lg text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 transition-all"
+                      className="text-[9px] uppercase tracking-wider px-2 py-1.5 rounded-lg text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/5 transition-all font-semibold"
                     >
-                      Load Sample
-                    </button>
-                    <button
-                      onClick={handleClear}
-                      disabled={!htmlCode}
-                      className="text-xs px-3 py-1.5 rounded-lg text-red-400 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1"
-                    >
-                      <Trash2 className="w-3 h-3" /> Clear
+                      Sample
                     </button>
                   </div>
                 </div>
 
-                {/* Editor Area with Drag-and-Drop */}
-                <div className="relative">
+                {/* Code Textarea with Drag & Drop */}
+                <div className="relative flex-1 min-h-[280px] border border-white/5 rounded-xl overflow-hidden bg-black/40">
                   <textarea
-                    id="html-input"
                     value={htmlCode}
                     onChange={(e) => setHtmlCode(e.target.value)}
                     onDragOver={handleDragOver}
                     onDragLeave={handleDragLeave}
                     onDrop={handleDrop}
-                    placeholder={`Paste your full HTML code here, or drag & drop an HTML file...\n\nYour HTML should contain elements with class="slide" (1080×1350px).\nWatermarks inside class="watermark" will be automatically updated.`}
+                    placeholder={`Paste code here or drag & drop HTML file...\n\nUse <div class="slide"> for slides (1080×1350px).\n\nUse <div class="watermark"> for custom handles.`}
                     className={cn(
-                      "html-editor w-full bg-transparent text-white/80 placeholder:text-white/15 p-5 focus:outline-none transition-all duration-200 resize-none font-mono text-xs leading-relaxed",
-                      isDragging && "bg-indigo-500/[0.05] border border-dashed border-indigo-500/50"
+                      "w-full h-full bg-transparent text-[11px] text-zinc-400 placeholder:text-zinc-700 p-4 focus:outline-none transition-all duration-200 resize-none font-mono leading-relaxed",
+                      isDragging && "bg-white/[0.02]"
                     )}
-                    style={{ minHeight: '320px', maxHeight: '420px' }}
                     spellCheck={false}
                   />
                   {isDragging && (
-                    <div className="absolute inset-0 bg-indigo-500/5 backdrop-blur-xs flex flex-col items-center justify-center pointer-events-none">
-                      <div className="w-12 h-12 rounded-full bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center mb-2 animate-bounce">
-                        <Upload className="w-5 h-5 text-indigo-400" />
-                      </div>
-                      <p className="text-xs text-indigo-400 font-semibold">Drop your HTML file here</p>
+                    <div className="absolute inset-0 bg-zinc-950/90 backdrop-blur-xs flex flex-col items-center justify-center pointer-events-none border border-dashed border-white/20 rounded-xl">
+                      <Upload className="w-5 h-5 text-white mb-1.5 animate-bounce" />
+                      <p className="text-[10px] text-white uppercase tracking-widest font-semibold">Drop to Import HTML</p>
                     </div>
                   )}
                 </div>
-              </div>
 
-              {/* Action Bar */}
-              <div className="flex items-center justify-between px-5 py-4 border-t border-white/5 bg-white/[0.02] mt-auto">
-                <p className="text-[11px] text-white/25">
-                  {htmlCode ? `${htmlCode.length.toLocaleString()} characters` : 'No code loaded'}
-                </p>
                 <button
-                  id="parse-button"
                   onClick={parseAndRender}
                   disabled={!htmlCode.trim() || isProcessing}
-                  className={cn(
-                    'flex items-center gap-2 px-6 py-2.5 rounded-xl font-semibold text-sm',
-                    'bg-gradient-to-r from-indigo-500 to-purple-600 text-white',
-                    'hover:from-indigo-600 hover:to-purple-700',
-                    'shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30',
-                    'transition-all duration-200',
-                    'disabled:opacity-40 disabled:cursor-not-allowed',
-                    'hover:scale-[1.02] active:scale-[0.98]'
-                  )}
+                  className="w-full bg-white text-zinc-950 hover:bg-zinc-200 disabled:bg-zinc-900 disabled:text-zinc-600 disabled:border-zinc-800 border border-white/10 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2 mt-auto"
                 >
                   {isProcessing ? (
                     <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Rendering Carousel...
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      Rendering...
                     </>
                   ) : (
                     <>
-                      <Image className="w-4 h-4" />
+                      <Code2 className="w-3.5 h-3.5" />
                       Generate Slides
                     </>
                   )}
                 </button>
               </div>
-            </div>
-          </section>
+            )}
 
-          {/* Custom Branding & Settings Panel - Takes 1/3 width */}
-          <section className="lg:col-span-1">
-            <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 backdrop-blur-sm flex flex-col h-full justify-between">
-              <div>
-                {/* Branding Panel Header */}
-                <div className="flex items-center justify-between pb-4 border-b border-white/5 mb-6">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-indigo-400" />
-                    <h2 className="text-sm font-semibold text-white/80 uppercase tracking-wider">Premium Branding</h2>
+            {/* BRANDING TAB */}
+            {activeTab === 'brand' && (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between pb-3 border-b border-white/5">
+                  <div>
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-white">Dynamic Brand Override</h3>
+                    <p className="text-[10px] text-zinc-500 mt-0.5">Inject handles dynamically inside slides.</p>
                   </div>
-                  
-                  {/* Enable Switch Toggle */}
                   <label className="relative inline-flex items-center cursor-pointer">
                     <input 
                       type="checkbox" 
@@ -452,36 +441,34 @@ const App: React.FC = () => {
                       onChange={(e) => setEnableBranding(e.target.checked)} 
                       className="sr-only peer" 
                     />
-                    <div className="w-9 h-5 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                    <div className="w-8 h-4.5 bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-white"></div>
                   </label>
                 </div>
 
                 {!enableBranding ? (
                   <div className="flex flex-col items-center justify-center py-16 text-center">
-                    <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center mb-4 text-white/20">
-                      <User className="w-6 h-6" />
-                    </div>
-                    <p className="text-xs text-white/40 font-semibold mb-1">Custom Branding is OFF</p>
-                    <p className="text-[11px] text-white/20 max-w-[200px]">
-                      Enable custom branding to auto-inject your logo, Instagram handle, and verified badge into your slides.
+                    <Settings className="w-8 h-8 text-zinc-700 mb-3" />
+                    <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider mb-1">Branding is Disabled</p>
+                    <p className="text-[9px] text-zinc-600 max-w-[200px]">
+                      Enable custom branding to auto-inject your logo and watermark credentials.
                     </p>
                   </div>
                 ) : (
-                  <div className="space-y-6 animate-fadeIn">
+                  <div className="space-y-5 animate-fadeIn">
+                    
                     {/* Avatar Upload */}
-                    <div>
-                      <label className="block text-xs font-semibold text-white/40 uppercase tracking-wider mb-2.5">Avatar Logo</label>
-                      <div className="flex items-center gap-4">
-                        <div className="relative w-14 h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden flex-shrink-0">
+                    <div className="space-y-2">
+                      <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Channel Logo</label>
+                      <div className="flex items-center gap-3 p-3 bg-white/[0.02] border border-white/5 rounded-xl">
+                        <div className="relative w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden flex-shrink-0">
                           {avatarUrl ? (
                             <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
                           ) : (
-                            <User className="w-5 h-5 text-white/20" />
+                            <User className="w-4 h-4 text-zinc-500" />
                           )}
                         </div>
-                        <div className="flex-1 space-y-1.5">
-                          <label className="inline-flex items-center justify-center px-4 py-2 border border-white/10 rounded-xl text-xs font-semibold text-white/70 hover:bg-white/5 cursor-pointer transition-all w-full text-center">
-                            <Upload className="w-3.5 h-3.5 mr-2" />
+                        <div className="flex-1 space-y-1">
+                          <label className="inline-flex items-center justify-center px-3 py-1.5 border border-white/10 rounded-lg text-[10px] font-bold text-white/70 hover:bg-white/5 cursor-pointer transition-all w-full text-center uppercase tracking-wider">
                             Upload Logo
                             <input 
                               type="file" 
@@ -493,9 +480,9 @@ const App: React.FC = () => {
                           {avatarUrl && (
                             <button 
                               onClick={() => setAvatarUrl(null)}
-                              className="flex items-center justify-center gap-1.5 text-[10px] text-red-400/80 hover:text-red-400 transition-colors w-full"
+                              className="block text-[8px] text-red-400/80 hover:text-red-400 text-center w-full uppercase tracking-wider font-bold transition-colors"
                             >
-                              <Trash2 className="w-2.5 h-2.5" /> Remove Logo
+                              Remove
                             </button>
                           )}
                         </div>
@@ -503,24 +490,24 @@ const App: React.FC = () => {
                     </div>
 
                     {/* Instagram Handle */}
-                    <div>
-                      <label className="block text-xs font-semibold text-white/40 uppercase tracking-wider mb-2">Instagram Handle</label>
+                    <div className="space-y-2">
+                      <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Handle Name</label>
                       <input
                         type="text"
                         value={instaHandle}
                         onChange={(e) => setInstaHandle(e.target.value)}
                         placeholder="@yourusername"
-                        className="w-full bg-black/20 border border-white/10 focus:border-indigo-500 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none placeholder:text-white/20 transition-colors"
+                        className="w-full bg-black/40 border border-white/5 focus:border-white/20 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none placeholder:text-zinc-700 transition-colors"
                       />
                     </div>
 
                     {/* Verified Badge Checkbox */}
-                    <div className="flex items-center justify-between p-4 bg-white/[0.02] border border-white/5 rounded-xl">
+                    <div className="flex items-center justify-between p-3.5 bg-white/[0.02] border border-white/5 rounded-xl">
                       <div className="flex items-center gap-2">
-                        <svg viewBox="0 0 24 24" width="18" height="18" style={{ fill: '#0095f6' }}>
+                        <svg viewBox="0 0 24 24" width="16" height="16" style={{ fill: '#0095f6' }}>
                           <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.99-3.818-3.99-.488 0-.95.1-1.37.28C14.73 2.5 13.435 1.5 12 1.5s-2.73 1-3.402 2.29c-.42-.18-.882-.28-1.37-.28C5.12 3.51 3.41 5.29 3.41 7.5c0 .495.084.965.238 1.4-1.273.65-2.148 2.02-2.148 3.6 0 1.58.875 2.95 2.148 3.6-.154.435-.238.905-.238 1.4 0 2.21 1.71 3.99 3.818 3.99.488 0 .95-.1 1.37-.28.672 1.29 1.967 2.29 3.402 2.29s2.73-1 3.402-2.29c.42.18.882.28 1.37.28 2.108 0 3.818-1.78 3.818-3.99 0-.495-.084-.965-.238-1.4 1.273-.65 2.148-2.02 2.148-3.6zm-12.5 4l-4-4 1.41-1.41L10 13.67l6.59-6.59 1.41 1.41-8 8z" />
                         </svg>
-                        <span className="text-xs font-semibold text-white/70">Verified Tick</span>
+                        <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Verified Badge</span>
                       </div>
                       <label className="relative inline-flex items-center cursor-pointer">
                         <input 
@@ -529,260 +516,255 @@ const App: React.FC = () => {
                           onChange={(e) => setShowVerified(e.target.checked)} 
                           className="sr-only peer" 
                         />
-                        <div className="w-8 h-4 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-blue-500"></div>
+                        <div className="w-8 h-4 bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-blue-500"></div>
                       </label>
                     </div>
+
+                    {/* Live Watermark Preview Inside Sidebar */}
+                    <div className="p-3 border border-white/5 bg-black/40 rounded-xl space-y-2">
+                      <label className="block text-[8px] font-bold text-zinc-600 uppercase tracking-widest">Live Watermark Preview</label>
+                      <div className="flex items-center justify-center p-2 bg-zinc-950 border border-white/5 rounded-lg text-white/50 text-xs">
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                          {avatarUrl ? (
+                            <img src={avatarUrl} style={{ width: '18px', height: '18px', borderRadius: '50%', objectFit: 'cover' }} alt="" />
+                          ) : (
+                            <div className="w-[18px] h-[18px] rounded-full bg-white/10 flex items-center justify-center"><User className="w-2.5 h-2.5 text-white/30" /></div>
+                          )}
+                          <span style={{ fontWeight: 700, fontSize: '11px', color: '#fff' }}>
+                            {instaHandle.trim() ? (instaHandle.startsWith('@') ? instaHandle : `@${instaHandle}`) : '@yourusername'}
+                          </span>
+                          {showVerified && (
+                            <svg viewBox="0 0 24 24" width="12" height="12" style={{ fill: '#0095f6' }}>
+                              <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.99-3.818-3.99-.488 0-.95.1-1.37.28C14.73 2.5 13.435 1.5 12 1.5s-2.73 1-3.402 2.29c-.42-.18-.882-.28-1.37-.28C5.12 3.51 3.41 5.29 3.41 7.5c0 .495.084.965.238 1.4-1.273.65-2.148 2.02-2.148 3.6 0 1.58.875 2.95 2.148 3.6-.154.435-.238.905-.238 1.4 0 2.21 1.71 3.99 3.818 3.99.488 0 .95-.1 1.37-.28.672 1.29 1.967 2.29 3.402 2.29s2.73-1 3.402-2.29c.42.18.882.28 1.37.28 2.108 0 3.818-1.78 3.818-3.99 0-.495-.084-.965-.238-1.4 1.273-.65 2.148-2.02 2.148-3.6zm-12.5 4l-4-4 1.41-1.41L10 13.67l6.59-6.59 1.41 1.41-8 8z" />
+                            </svg>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
                   </div>
                 )}
               </div>
-              
-              {enableBranding && (
-                <div className="mt-6 pt-4 border-t border-white/5 animate-fadeIn">
-                  <label className="block text-[9px] font-bold text-white/20 uppercase tracking-wider mb-2">Live Watermark Preview</label>
-                  <div className="flex items-center justify-center p-3 bg-black/30 border border-white/5 rounded-xl text-white/50 text-xs">
-                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                      {avatarUrl ? (
-                        <img src={avatarUrl} style={{ width: '20px', height: '20px', borderRadius: '50%', objectFit: 'cover' }} alt="" />
-                      ) : (
-                        <div className="w-[20px] h-[20px] rounded-full bg-white/10 flex items-center justify-center"><User className="w-2.5 h-2.5 text-white/30" /></div>
-                      )}
-                      <span style={{ fontWeight: 700 }}>
-                        {instaHandle.trim() ? (instaHandle.startsWith('@') ? instaHandle : `@${instaHandle}`) : '@yourusername'}
-                      </span>
-                      {showVerified && (
-                        <svg viewBox="0 0 24 24" width="13" height="13" style={{ fill: '#0095f6' }}>
-                          <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.99-3.818-3.99-.488 0-.95.1-1.37.28C14.73 2.5 13.435 1.5 12 1.5s-2.73 1-3.402 2.29c-.42-.18-.882-.28-1.37-.28C5.12 3.51 3.41 5.29 3.41 7.5c0 .495.084.965.238 1.4-1.273.65-2.148 2.02-2.148 3.6 0 1.58.875 2.95 2.148 3.6-.154.435-.238.905-.238 1.4 0 2.21 1.71 3.99 3.818 3.99.488 0 .95-.1 1.37-.28.672 1.29 1.967 2.29 3.402 2.29s2.73-1 3.402-2.29c.42.18.882.28 1.37.28 2.108 0 3.818-1.78 3.818-3.99 0-.495-.084-.965-.238-1.4 1.273-.65 2.148-2.02 2.148-3.6zm-12.5 4l-4-4 1.41-1.41L10 13.67l6.59-6.59 1.41 1.41-8 8z" />
-                        </svg>
-                      )}
-                    </div>
+            )}
+
+            {/* EXPORT TAB */}
+            {activeTab === 'export' && (
+              <div className="space-y-6">
+                
+                {slideNodes.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-center">
+                    <FolderDown className="w-8 h-8 text-zinc-700 mb-3" />
+                    <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider mb-1">No Slides Loaded</p>
+                    <p className="text-[9px] text-zinc-600 max-w-[200px]">
+                      Generate your slides first in the "Code" tab to configure export properties.
+                    </p>
                   </div>
-                </div>
-              )}
-            </div>
-          </section>
+                ) : (
+                  <div className="space-y-5 animate-fadeIn">
+                    
+                    {/* Format Toggle */}
+                    <div className="space-y-2">
+                      <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Image Format</label>
+                      <div className="flex bg-black/40 border border-white/5 rounded-xl p-1 justify-between items-center">
+                        <span className="text-xs text-zinc-400 px-3">Export File Format</span>
+                        <div className="flex bg-white/5 rounded-lg p-0.5">
+                          <button
+                            onClick={() => setExportFormat('png')}
+                            className={cn(
+                              'px-3 py-1.5 text-[10px] font-bold rounded-md transition-all uppercase tracking-wider',
+                              exportFormat === 'png' ? 'bg-white/10 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'
+                            )}
+                          >PNG</button>
+                          <button
+                            onClick={() => setExportFormat('jpg')}
+                            className={cn(
+                              'px-3 py-1.5 text-[10px] font-bold rounded-md transition-all uppercase tracking-wider',
+                              exportFormat === 'jpg' ? 'bg-white/10 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'
+                            )}
+                          >JPG</button>
+                        </div>
+                      </div>
+                    </div>
 
-        </div>
+                    {/* Single Slide Export List */}
+                    <div className="space-y-2">
+                      <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Export Individual Slides</label>
+                      <div className="max-h-[220px] overflow-y-auto border border-white/5 bg-black/40 rounded-xl divide-y divide-white/5 scrollbar-hide">
+                        {slideNodes.map((_, index) => (
+                          <div key={index} className="flex items-center justify-between p-3.5 hover:bg-white/[0.02] transition-colors">
+                            <span className="text-[11px] font-semibold text-zinc-300">Slide {String(index + 1).padStart(2, '0')}</span>
+                            <button
+                              onClick={() => handleExportSingle(index)}
+                              disabled={isExporting || isExportingAll}
+                              className="text-[10px] px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 hover:text-white text-zinc-300 font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all disabled:opacity-40"
+                            >
+                              <Download className="w-3 h-3" /> Save
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
 
-        {/* Error */}
-        <AnimatePresence>
-          {error && (
+                    {/* Export All Zip Button */}
+                    <button
+                      onClick={handleExportAll}
+                      disabled={isExporting || isExportingAll}
+                      className="w-full bg-white text-zinc-950 hover:bg-zinc-200 disabled:bg-zinc-900 disabled:text-zinc-600 disabled:border-zinc-800 border border-white/10 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2 mt-4 shadow-xl shadow-white/5"
+                    >
+                      {isExportingAll ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          Zipping {exportProgress.current}/{exportProgress.total}...
+                        </>
+                      ) : (
+                        <>
+                          <Archive className="w-3.5 h-3.5" />
+                          Download All (ZIP)
+                        </>
+                      )}
+                    </button>
+
+                  </div>
+                )}
+              </div>
+            )}
+
+          </div>
+
+          {/* Unified Sidebar Footer Status */}
+          <div className="p-4 border-t border-white/5 text-[9px] uppercase tracking-widest text-zinc-600 text-center font-bold">
+            Status: Fully Live & Connected
+          </div>
+
+        </section>
+
+        {/* Right Workspace Canvas */}
+        <section className="flex-1 bg-grid bg-zinc-900/10 flex flex-col items-center justify-center p-8 overflow-hidden relative">
+
+          {/* Empty State when no slides loaded */}
+          {slideNodes.length === 0 && !isProcessing && (
             <motion.div
-              initial={{ opacity: 0, y: -10 }}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="mb-6 flex items-center gap-3 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm"
+              className="flex flex-col items-center justify-center max-w-sm text-center bg-zinc-950/80 border border-white/5 rounded-2xl p-8 backdrop-blur-md shadow-2xl z-10"
             >
-              <p>{error}</p>
-              <button onClick={() => setError(null)} className="ml-auto text-red-400/60 hover:text-red-400 transition-colors">✕</button>
+              <div className="w-12 h-12 rounded-full border border-white/10 flex items-center justify-center mb-4 text-zinc-400 bg-white/5">
+                <Sparkles className="w-5 h-5 animate-pulse" />
+              </div>
+              <h2 className="text-sm font-semibold text-white uppercase tracking-[0.2em] font-display mb-1">
+                InstaCarousel Canvas
+              </h2>
+              <p className="text-[11px] text-zinc-500 leading-relaxed mb-5">
+                Import your Instagram HTML slide code. The tool will parse each slide at the exact 1080×1350px 4:5 portrait ratio ready for exporting.
+              </p>
+              <div className="flex gap-3 justify-center w-full">
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex-1 text-[10px] uppercase tracking-widest font-bold py-2 rounded-xl text-white border border-white/10 hover:bg-white/5 transition-all"
+                >
+                  Browse File
+                </button>
+                <button
+                  onClick={loadSample}
+                  className="flex-1 text-[10px] uppercase tracking-widest font-bold py-2 rounded-xl bg-white text-zinc-950 hover:bg-zinc-200 transition-all"
+                >
+                  Load Sample
+                </button>
+              </div>
             </motion.div>
           )}
-        </AnimatePresence>
 
-        {/* Processing Skeleton */}
-        <AnimatePresence>
+          {/* Rendering Skeleton during parse */}
           {isProcessing && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="mb-8">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-3 h-3 rounded-full bg-indigo-500 animate-pulse" />
-                <p className="text-sm text-white/50">Parsing HTML & rendering slides...</p>
+            <div className="flex flex-col items-center justify-center z-10">
+              <Loader2 className="w-8 h-8 text-zinc-400 animate-spin mb-4" />
+              <p className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold">Assembling Slide Matrix...</p>
+            </div>
+          )}
+
+          {/* Error Message banner */}
+          <AnimatePresence>
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="absolute top-6 left-6 right-6 z-40 flex items-center gap-3 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-semibold backdrop-blur-md"
+              >
+                <span>{error}</span>
+                <button onClick={() => setError(null)} className="ml-auto text-red-400/60 hover:text-red-400 transition-colors">✕</button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* IMMERSIVE CANVAS WORKSPACE */}
+          {slideNodes.length > 0 && !isProcessing && (
+            <div className="w-full h-full flex flex-col items-center justify-center relative animate-fadeIn">
+              
+              {/* Scaled Active Slide Centerpiece */}
+              <div className="relative flex items-center justify-center w-full flex-1">
+                
+                {/* Floating Left Page Arrow */}
+                <button
+                  onClick={() => setSelectedSlide(prev => Math.max(0, prev - 1))}
+                  disabled={selectedSlide === 0}
+                  className="absolute left-10 p-3 rounded-full bg-zinc-950/80 border border-white/5 text-zinc-400 hover:text-white hover:bg-zinc-900 hover:scale-105 disabled:opacity-0 disabled:pointer-events-none transition-all shadow-xl z-30"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+
+                {/* Main 4:5 Instagram Canvas Container */}
+                <div 
+                  className="w-[400px] h-[500px] shadow-[0_30px_100px_-20px_rgba(0,0,0,0.85)] border border-white/10 rounded-2xl overflow-hidden relative bg-black transition-all duration-300 transform"
+                >
+                  {/* CSS Hard-Scaled Dynamic Node Rendering */}
+                  <div 
+                    dangerouslySetInnerHTML={{ __html: slideNodes[selectedSlide].outerHTML }} 
+                    className="origin-top-left scale-[0.37037] pointer-events-none absolute inset-0"
+                    style={{ width: '1080px', height: '1350px' }}
+                  />
+                </div>
+
+                {/* Floating Right Page Arrow */}
+                <button
+                  onClick={() => setSelectedSlide(prev => Math.min(slideNodes.length - 1, prev + 1))}
+                  disabled={selectedSlide === slideNodes.length - 1}
+                  className="absolute right-10 p-3 rounded-full bg-zinc-950/80 border border-white/5 text-zinc-400 hover:text-white hover:bg-zinc-900 hover:scale-105 disabled:opacity-0 disabled:pointer-events-none transition-all shadow-xl z-30"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+
               </div>
-              <div className="flex gap-4 overflow-hidden">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="flex-shrink-0 rounded-xl animate-shimmer" style={{ width: '216px', aspectRatio: '4/5', animationDelay: `${i * 0.15}s` }} />
+
+              {/* Floating Slide Thumbnail Strip Carousel */}
+              <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-zinc-950/80 border border-white/5 backdrop-blur-xl rounded-2xl py-2 px-3 shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex items-center gap-2 max-w-[80%] overflow-x-auto scrollbar-hide z-30">
+                {slideNodes.map((node, index) => (
+                  <div
+                    key={index}
+                    onClick={() => setSelectedSlide(index)}
+                    className={cn(
+                      "w-12 h-15 rounded-lg border-2 overflow-hidden flex-shrink-0 cursor-pointer transition-all duration-300 relative bg-black",
+                      index === selectedSlide
+                        ? "border-white scale-[1.05]"
+                        : "border-transparent opacity-40 hover:opacity-80"
+                    )}
+                  >
+                    {/* Tiny scaled micro-thumbnail */}
+                    <div 
+                      dangerouslySetInnerHTML={{ __html: node.outerHTML }} 
+                      className="origin-top-left scale-[0.0444] pointer-events-none absolute inset-0"
+                      style={{ width: '1080px', height: '1350px' }}
+                    />
+                  </div>
                 ))}
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
 
-        {/* Slides Preview & Export */}
-        <AnimatePresence>
-          {slideNodes.length > 0 && !isProcessing && (
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-
-              {/* Preview Carousel */}
-              <section className="mb-8">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-sm font-semibold text-white/60 uppercase tracking-wider">Slide Previews</h2>
-                  <div className="flex gap-2">
-                    <button onClick={() => scrollPreview('left')} className="p-2 rounded-lg bg-white/5 border border-white/10 text-white/40 hover:text-white/80 hover:bg-white/10 transition-all">
-                      <ChevronLeft className="w-4 h-4" />
-                    </button>
-                    <button onClick={() => scrollPreview('right')} className="p-2 rounded-lg bg-white/5 border border-white/10 text-white/40 hover:text-white/80 hover:bg-white/10 transition-all">
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-
-                <div ref={previewScrollRef} className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory">
-                  {slideNodes.map((node, index) => (
-                    <motion.div
-                      key={index}
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ duration: 0.4, delay: index * 0.05 }}
-                      className="flex-shrink-0 snap-center"
-                      style={{ width: '216px' }}
-                    >
-                      <div
-                        onClick={() => setSelectedSlide(index)}
-                        className={cn(
-                          'slide-thumb cursor-pointer rounded-xl overflow-hidden border-2 transition-all duration-300 relative bg-black',
-                          index === selectedSlide
-                            ? 'border-indigo-500 scale-[1.02] shadow-lg shadow-indigo-500/25'
-                            : 'border-transparent hover:border-white/10'
-                        )}
-                        style={{ width: '216px', height: '270px' }}
-                      >
-                        <div 
-                          dangerouslySetInnerHTML={{ __html: node.outerHTML }} 
-                          className="origin-top-left scale-[0.2] pointer-events-none absolute inset-0"
-                          style={{ width: '1080px', height: '1350px' }}
-                        />
-                      </div>
-                      <p className="text-center text-xs text-white/40 mt-2.5 font-medium">
-                        Slide {index + 1}
-                      </p>
-                    </motion.div>
-                  ))}
-                </div>
-              </section>
-
-              {/* Export Panel */}
-              <section className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 backdrop-blur-sm">
-                <div className="flex items-center gap-2 mb-5">
-                  <Download className="w-4 h-4 text-white/40" />
-                  <h3 className="text-sm font-semibold text-white/60 uppercase tracking-wider">Export</h3>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  {/* Format Toggle */}
-                  <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-white/5 border border-white/10">
-                    <div className="flex items-center gap-2 text-white/70 text-sm">
-                      <FileType className="w-4 h-4" />
-                      <span>Format</span>
-                    </div>
-                    <div className="flex bg-black/20 rounded-lg p-1">
-                      <button
-                        onClick={() => setExportFormat('png')}
-                        className={cn(
-                          'px-3 py-1 text-xs font-medium rounded-md transition-all',
-                          exportFormat === 'png' ? 'bg-white/10 text-white shadow-sm' : 'text-white/50 hover:text-white/80'
-                        )}
-                      >PNG</button>
-                      <button
-                        onClick={() => setExportFormat('jpg')}
-                        className={cn(
-                          'px-3 py-1 text-xs font-medium rounded-md transition-all',
-                          exportFormat === 'jpg' ? 'bg-white/10 text-white shadow-sm' : 'text-white/50 hover:text-white/80'
-                        )}
-                      >JPG</button>
-                    </div>
-                  </div>
-
-                  {/* Export Single */}
-                  <button
-                    id="export-single-button"
-                    onClick={handleExportSingle}
-                    disabled={isExporting || isExportingAll}
-                    className={cn(
-                      'flex items-center justify-center gap-2 px-4 py-3 rounded-xl',
-                      'bg-white/5 border border-white/10',
-                      'text-white/70 text-sm font-medium',
-                      'hover:bg-white/10 hover:text-white hover:border-white/20',
-                      'transition-all duration-200',
-                      'disabled:opacity-40 disabled:cursor-not-allowed'
-                    )}
-                  >
-                    {isExporting ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Image className="w-4 h-4" />
-                    )}
-                    Slide {selectedSlide + 1} as {exportFormat.toUpperCase()}
-                  </button>
-
-                  {/* Export All */}
-                  <button
-                    id="export-all-button"
-                    onClick={handleExportAll}
-                    disabled={isExporting || isExportingAll}
-                    className={cn(
-                      'flex items-center justify-center gap-2 px-4 py-3 rounded-xl',
-                      'bg-gradient-to-r from-indigo-500 to-purple-600',
-                      'text-white text-sm font-semibold',
-                      'hover:from-indigo-600 hover:to-purple-700',
-                      'shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30',
-                      'transition-all duration-200',
-                      'disabled:opacity-40 disabled:cursor-not-allowed',
-                      'hover:scale-[1.01] active:scale-[0.99]'
-                    )}
-                  >
-                    {isExportingAll ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        {exportProgress.current}/{exportProgress.total}
-                      </>
-                    ) : (
-                      <>
-                        <Archive className="w-4 h-4" />
-                        All as ZIP
-                      </>
-                    )}
-                  </button>
-                </div>
-
-                <p className="text-[11px] text-white/20 text-center mt-4">
-                  Exports at 1080×1350px (4:5 ratio) • Instagram-ready
-                </p>
-              </section>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Empty State */}
-        {slideNodes.length === 0 && !isProcessing && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
-            className="flex flex-col items-center justify-center py-16"
-          >
-            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-indigo-500/10 to-purple-600/10 border border-white/5 flex items-center justify-center mb-6 animate-float">
-              <Code2 className="w-8 h-8 text-indigo-400/40" />
             </div>
-            <h2 className="text-xl font-semibold text-white/40 mb-2" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-              Paste HTML or Upload File
-            </h2>
-            <p className="text-sm text-white/20 text-center max-w-sm mb-6">
-              Paste your HTML code, drop an HTML file, or upload one to generate your 4:5 Instagram carousel slides.
-            </p>
-            <div className="flex gap-4">
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="text-sm px-5 py-2.5 rounded-xl text-white/70 bg-white/5 hover:bg-white/10 border border-white/10 transition-all flex items-center gap-2"
-              >
-                <Upload className="w-4 h-4" /> Upload HTML File
-              </button>
-              <button
-                onClick={loadSample}
-                className="text-sm px-5 py-2.5 rounded-xl text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 transition-all"
-              >
-                Try with Sample HTML
-              </button>
-            </div>
-          </motion.div>
-        )}
+          )}
+
+        </section>
+
       </main>
-
-      {/* Footer */}
-      <footer className="border-t border-white/5 mt-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <p className="text-center text-xs text-white/20">
-            InstaCarousel Designer • Premium HTML to 4:5 Instagram Carousel Creator
-          </p>
-        </div>
-      </footer>
     </div>
   );
 };
