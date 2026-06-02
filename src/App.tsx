@@ -78,6 +78,9 @@ const scopeCss = (cssText: string, prefix: string): string => {
       .map(part => {
         const trimmed = part.trim();
         if (!trimmed) return '';
+        if (trimmed === ':root') {
+          return trimmed;
+        }
         if (trimmed === 'body' || trimmed === 'html') {
           return prefix;
         }
