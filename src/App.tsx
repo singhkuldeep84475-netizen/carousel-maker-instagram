@@ -95,6 +95,7 @@ const scopeCss = (cssText: string, prefix: string): string => {
 
 const App: React.FC = () => {
   const [htmlCode, setHtmlCode] = useState('');
+  const [htmlTitle, setHtmlTitle] = useState('');
   const [slideNodes, setSlideNodes] = useState<HTMLElement[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [selectedSlide, setSelectedSlide] = useState(0);
@@ -153,6 +154,10 @@ const App: React.FC = () => {
         // Parse HTML to extract styles and body
         const parser = new DOMParser();
         const doc = parser.parseFromString(targetCode, 'text/html');
+
+        // Extract slide title dynamically
+        const parsedTitle = doc.querySelector('title')?.textContent?.trim() || '';
+        setHtmlTitle(parsedTitle);
 
         // Extract all <style> tags and <link> tags
         const styles = doc.querySelectorAll('style');
@@ -371,7 +376,12 @@ const App: React.FC = () => {
     if (slideNodes.length === 0 || isExporting) return;
     setIsExporting(true);
     try {
-      const filename = `${instaHandle.trim() ? instaHandle.replace('@', '') : 'slide'}-${String(index + 1).padStart(2, '0')}`;
+      // Use clean, OS-safe HTML title if available, otherwise fallback to handle or generic prefix
+      const baseName = htmlTitle.trim()
+        ? htmlTitle.trim().replace(/[^a-zA-Z0-9-_ ]/g, '').replace(/\s+/g, '_')
+        : (instaHandle.trim() ? instaHandle.replace('@', '') : 'slide');
+      
+      const filename = `${baseName}-${String(index + 1).padStart(2, '0')}`;
       await exportNodeAsImage(slideNodes[index], filename, exportFormat);
     } catch (err: any) {
       console.error('Export error:', err);
@@ -386,7 +396,11 @@ const App: React.FC = () => {
     setIsExportingAll(true);
     setExportProgress({ current: 0, total: slideNodes.length });
     try {
-      const zipName = instaHandle.trim() ? instaHandle.replace('@', '') : 'carousel';
+      // Use clean, OS-safe HTML title if available, otherwise fallback to handle or generic prefix
+      const zipName = htmlTitle.trim()
+        ? htmlTitle.trim().replace(/[^a-zA-Z0-9-_ ]/g, '').replace(/\s+/g, '_')
+        : (instaHandle.trim() ? instaHandle.replace('@', '') : 'carousel');
+      
       await exportAllAsZip(slideNodes, zipName, exportFormat, (current, total) => {
         setExportProgress({ current, total });
       });
