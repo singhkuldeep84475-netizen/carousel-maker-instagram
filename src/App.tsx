@@ -202,8 +202,8 @@ const App: React.FC = () => {
               ? (instaHandle.startsWith('@') ? instaHandle : `@${instaHandle}`)
               : null;
 
-            // 1. Target standard simple .watermark classes
-            const watermarks = slideClone.querySelectorAll('.watermark');
+            // 1. Target standard simple .watermark and .handle classes
+            const watermarks = slideClone.querySelectorAll('.watermark, .handle');
             watermarks.forEach(watermark => {
               (watermark as HTMLElement).style.opacity = '1';
               const finalHandle = handleText || '@yourusername';
